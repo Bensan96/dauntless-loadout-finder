@@ -1,0 +1,31 @@
+name: Update game data
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pyyaml pillow
+      - name: Fetch upstream data
+        run: git clone --depth 1 https://github.com/atomicptr/dauntless-builder-reforged.git vendor/dauntless-builder-reforged
+      - name: Build data/game-data.json
+        run: python3 scripts/build_data.py
+      - name: Build icons
+        run: python3 scripts/build_icons.py
+      - name: Commit changes
+        run: |
+          if [ -n "$(git status --porcelain data assets/icons)" ]; then
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add data assets/icons
+            git commit -m "Update game data"
+            git push
+          else
+            echo "No data changes."
+          fi
