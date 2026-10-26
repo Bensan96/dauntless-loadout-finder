@@ -83,6 +83,17 @@ for d in load('cells/*/*.yml'):
         for perk in (v.get('perks') or {}):
             cell_keys[perk] = d['_key']
 
+# Weapon parts (mods, specials, chambers, grips) only add effects, they do not change perk totals.
+PART_DIRS = {'aetherstrikers': 'Aether Strikers', 'axe': 'Axe', 'chainblades': 'Chain Blades', 'hammer': 'Hammer',
+             'repeater': 'Repeater', 'sword': 'Sword', 'warpike': 'War Pike'}
+PART_KINDS = {'mods': 'mod', 'specials': 'special', 'chambers': 'chamber', 'grips': 'grip'}
+parts = {}
+for d in load('parts/*/*/*.yml'):
+    _, wdir, kdir, _ = d['_key'].split('/')
+    effect = '\n'.join(plain(t, d.get('values')) for t in (d.get('part_effect') or []))
+    parts.setdefault(PART_DIRS[wdir], {}).setdefault(PART_KINDS[kdir], []).append(
+        [d['name'], d['_key'], effect, 1 if 'Recommended' in (d.get('tags') or []) else 0])
+
 misc = yaml.safe_load(open(R + 'misc.yml', encoding='utf-8')) or {}
 commit = ''
 try:
@@ -104,6 +115,8 @@ out = {
     'lan': lanterns,
     # omni: [[name, key, passiveText, activeText]]
     'omni': omni,
+    # parts: {weaponType: {mod|special|chamber|grip: [[name, key, effectText, recommended]]}}
+    'parts': parts,
     'cellKeys': cell_keys,
 }
 os.makedirs(os.path.dirname(args.out) or '.', exist_ok=True)

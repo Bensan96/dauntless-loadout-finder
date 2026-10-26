@@ -34,7 +34,7 @@ input[type=search]{flex:1;min-width:180px}button.pick{cursor:pointer}button.pick
 .rank{font-weight:700;font-size:15px}.good{color:var(--ok);font-weight:600}.warn{color:var(--bad);font-weight:600}
 .line{display:grid;grid-template-columns:78px 1fr;gap:8px;padding:8px 14px;border-bottom:1px solid var(--bd);align-items:start}
 .line:last-of-type{border-bottom:0}.lab{color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
-.gn{font-weight:600}details{display:inline}summary{cursor:pointer;color:var(--mu);font-size:12px;margin-left:6px}
+.gn{font-weight:600}.line details{display:inline}summary{cursor:pointer;color:var(--mu);font-size:12px;margin-left:6px}
 .sl{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 8px;border-radius:7px;border:1px solid var(--c);color:var(--c);margin:3px 5px 0 0}
 .sl.f{background:var(--c);color:#fff;font-weight:600}
 .tag{display:inline-flex;align-items:center;font-size:12px;padding:2px 8px;border-radius:7px;margin:3px 5px 0 0;border:1px solid var(--bd);background:var(--sf);cursor:help}
@@ -78,3 +78,33 @@ textarea.cb{width:100%;min-height:74px;font:12px/1.4 ui-monospace,monospace;colo
 .pre.dirty::after{content:'unsaved';font-size:11px;font-weight:700;color:var(--bad);margin:0 2px}
 #actbox{display:contents}.actb{background:var(--ac);color:#fff;padding:3px 12px;border-radius:99px;font-size:13px;white-space:nowrap}
 #actbox .pick{padding:3px 10px;font-size:12px;white-space:nowrap}#actbox .warn,#actbox .good{white-space:nowrap;font-size:13px}.sep{width:1px;align-self:stretch;background:var(--bd);margin:0 4px;flex:none}
+
+/* full-width layout: the page uses the whole window, builds sit in as many columns as fit */
+main{max-width:none!important;padding:16px clamp(12px,2vw,32px) 40px}
+#res{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:12px;align-items:start}
+#res>.build{margin:0}#res>p,#res>.empty{grid-column:1/-1}
+.parts{margin-top:8px;display:grid;gap:6px;padding:8px;border:1px dashed var(--bd);border-radius:10px;background:var(--sf)}
+.part label{font-size:12px;color:var(--mu);display:flex;gap:8px;align-items:center}.part select{font:inherit;font-size:13px;color:var(--tx);background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:3px 6px;max-width:100%}
+.gi.xs{width:22px;height:22px;border-radius:6px;vertical-align:middle;margin-right:6px}.part .desc{margin-top:3px}
+
+/* two columns: saved loadouts, perks and options on the left, builds on the right */
+.layout{display:grid;grid-template-columns:minmax(380px,44%) minmax(0,1fr);gap:16px;align-items:start}
+.side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;display:flex;flex-direction:column;gap:14px;border-radius:16px}.side .card{margin-bottom:0}
+.fams{display:flex!important;flex-direction:column;gap:8px}
+details.fam .list{position:static;min-width:0;max-height:min(46vh,360px);box-shadow:none;border:0;border-top:1px solid var(--bd);border-radius:0;padding:6px 2px 2px;margin-top:8px;background:transparent}
+.content{min-width:0}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.side{position:static;max-height:none}}
+.iedet summary{cursor:pointer;font-weight:600;color:var(--mu);list-style:none}.iedet summary::-webkit-details-marker{display:none}.iedet summary::before{content:'⇄ '}.iedet[open] summary{margin-bottom:12px;color:var(--tx)}
+#impview .build{margin-bottom:12px;border-color:var(--ac)}
+
+/* import / export block (details element used as a card) */
+details.card{display:block}
+/* category tabs: icons only, five in a row */
+.ftabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ftab{position:relative;height:56px;border:1px solid var(--bd);border-top:4px solid var(--c);border-radius:12px;background:var(--sf2);color:var(--c);cursor:pointer;display:grid;place-items:center;padding:0}
+.ftab .ci{width:32px;height:32px;margin:0}.ftab:hover{background:var(--sf)}.ftab.on{background:var(--c);color:#fff}
+.ftab .fc{position:absolute;top:3px;right:4px;font-size:11px;line-height:16px;background:var(--c);color:#fff;border-radius:99px;padding:0 6px;border:1px solid var(--sf)}.ftab.on .fc{background:#fff;color:var(--c)}
+.flist{margin-top:10px;max-height:min(46vh,380px);overflow:auto}
+.pr .ci{color:var(--c)}
+
+#perks{display:block!important}

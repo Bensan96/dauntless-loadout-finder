@@ -9,12 +9,12 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* Gear the player marked as "don't have": Map(itemKey -> name), kept in the browser. Search and weapon list skip these items. */
 let excl=new Map();try{excl=new Map(Object.entries(JSON.parse(localStorage.getItem('dlb_excl')||'{}')))}catch(e){}
 const saveExcl=()=>{try{localStorage.setItem('dlb_excl',JSON.stringify(Object.fromEntries(excl)))}catch(e){}};
-const icon=k=>(window.__ICONS__&&window.__ICONS__[k])||'assets/icons/'+k+'.webp';
+const icon=k=>(window.__ICONS__&&window.__ICONS__[k])||'';
 const img=(k,cls)=>`<img class="gi ${cls||''}" src="${icon(k)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const val=b=>$('sg').checked?3:b,cv=()=>+$('cv').value;
 const col=t=>`<span style="color:var(--${t})">${cic(t)}</span>`;
 /* Cell family icons (the game's own artwork, white on transparent) are drawn as a mask so they take the family colour. */
-function cic(fam){const u=(window.__CELL_ICONS__&&window.__CELL_ICONS__[fam])||icon('cells/'+fam);return `<span class="ci" style="--m:url('${u}')"></span>`}
+function cic(fam){return `<span class="ci" style="--m:url('${icon('cells/'+fam)}')"></span>`}
 const slot=t=>`<span class="sl" style="background:var(--${t})">${t}</span>`;
 const short=n=>n.slice(0,3).join(' / ')+(n.length>3?` +${n.length-3} more`:'');
 
@@ -49,7 +49,7 @@ function run(){
 const tipHtml=p=>{const d=D.perks[p],c=d[2]||{};const tr=t=>c[t]&&c[t].length?`<div class="tr"><b>At +${t}</b><ul>${c[t].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
  return `<b class="t">${cic(d[0])}${esc(p)}</b> <span class="mu">${d[0]}</span><div>${esc(d[1])}</div>${tr(3)}${tr(6)}`};
 const tip=$('tip');
-function place(e,t){const w=tip.offsetWidth,h=tip.offsetHeight,fam=t.closest('.fam');let x,y;
+function place(e,t){const w=tip.offsetWidth,h=tip.offsetHeight,fam=t.closest('.fam,.flist');let x,y;
  if(fam){const r=fam.getBoundingClientRect(),q=t.getBoundingClientRect();x=r.left-w-10;if(x<8)x=r.right+10;if(x+w>innerWidth-8)x=Math.max(8,Math.min(r.left,innerWidth-w-8));y=q.top-8;if(x===Math.max(8,Math.min(r.left,innerWidth-w-8)))y=q.bottom+8}
  else{x=e.clientX+16;y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16}
  if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
@@ -71,29 +71,29 @@ function view(o){const {R,tg,feasible,res,cvv,ty,lan}=o,names=['Head','Torso','A
   R.forEach((p,i)=>{const put=(want,n)=>{for(let j=0;j<items.length&&n>0;j++)items[j].cells.forEach((s,q)=>{if(n>0&&!fills[j][q]&&s===want){fills[j][q]=p;n--}})};put(ty[i],x.d.tk[i]);put(5,x.d.pk[i])});
   snaps[bi]={items:items.map((it,j)=>({lab:it.lab,nm:it.nm.slice(0,12),cells:it.cells.map((s,q)=>[s,fills[j][q]||''])})),tot:R.map((p,i)=>[p,x.d.tot[i],tg[i]])};const perkTags=it=>it.c?R.map((p,i)=>it.c[i]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${it.c[i]}</span>`:'').join(''):'';
   return `<div class="build"><div class="bh"><span class="rank">#${bi+1}</span>${x.d.ok?'<span class="good">✓ Reaches every target</span>':'<span class="warn">Misses a target</span>'}<span class="mu">${x.d.slots-x.d.spare} of ${x.d.slots} cell slots used</span><input class="sn nn" id="nm${bi}" placeholder="Name this loadout" maxlength="40" style="margin-left:auto;max-width:190px"><button class="pick sv" data-bi="${bi}">☆ Save</button><button class="pick xp" data-bi="${bi}">⇪ Export</button></div>`+
-  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}</div></div></div></div>`}).join('')+
+  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}</div>${rk.parts||''}</div></div></div>`}).join('')+
   `<div class="tot">`+R.map((p,i)=>{const t=x.d.tot[i],cn=x.d.tk[i]+x.d.pk[i];return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=tg[i]?'good':'warn'}">+${Math.min(6,t)}</b><span class="mu"> / ${tg[i]} · ${x.d.gear[i]} gear + ${cn} cell${cn==1?'':'s'}</span><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+'</div></div>'}).join('')}
 function table(){const R=[...sel.keys()];
  const rows=[...D.arm.filter(a=>a[4].some(p=>sel.has(p[0]))).map(a=>[a[0],a[1],a[2],[a[3]],a[4],a[5],a[6]]),...D.wp.filter(w=>!w[7]&&w[5].some(p=>sel.has(p[0]))).map(w=>[w[0],w[1],w[2],w[4],w[5],w[6],w[8]])];
  const none=R.filter(p=>!rows.some(r=>r[4].some(x=>x[0]===p)));
  return (none.length?`<p class="mu">Cells only (no gear carries it): <b>${none.map(esc).join(', ')}</b></p>`:'')+(rows.length?'<table><tr><th>Item</th><th>Type</th><th>Behemoth</th><th>Slots</th><th>Perk</th></tr>'+rows.map(r=>`<tr><td>${img(r[6],'sm')} ${esc(r[0])}${r[5]?' <span class="mu">(exotic)</span>':''}</td><td>${r[1]}</td><td>${esc(r[2])}</td><td>${r[3].map(s=>s?slotB(CI[s]):'').join('')}</td><td>${r[4].map(p=>`<span data-tip="${esc(p[0])}" class="${sel.has(p[0])?'good':'mu'}" style="cursor:help">${esc(p[0])} +${val(p[1])}</span>`).join(', ')}</td></tr>`).join('')+'</table>':'')}
-const openF=new Set();
-document.addEventListener('click',e=>{if(!e.target.closest('details.fam')&&openF.size){openF.clear();document.querySelectorAll('details.fam[open]').forEach(d=>d.open=false)}});
-function draw(){const q=$('q').value.toLowerCase();const st={};document.querySelectorAll('details.fam').forEach(d=>st[d.dataset.f]=d.querySelector('.list').scrollTop);
- $('perks').innerHTML=['Fortitude','Brutality','Alacrity','Finesse','Insight'].map(f=>{const ps=Object.keys(D.perks).filter(p=>D.perks[p][0]===f&&p.toLowerCase().includes(q)).sort(),n=[...sel.keys()].filter(p=>D.perks[p][0]===f).length;
-  return `<details class="fam" data-f="${f}" ${fc(f)} ${openF.has(f)||(q&&ps.length)?'open':''}><summary>${cic(f)}${f}${n?`<span class="fc">${n}</span>`:''}</summary><div class="list">`+ps.map(p=>{const v=sel.get(p);
-  return `<div class="pr" data-tip="${esc(p)}"><span class="pn">${esc(p)}</span><span class="pb"><button data-p="${esc(p)}" data-n="1" class="${v===1?'on':''}">+3</button><button data-p="${esc(p)}" data-n="2" class="${v===2?'on':''}">+6</button></span></div>`}).join('')+(ps.length?'':'<span class="mu">No match</span>')+'</div></details>'}).join('');
- document.querySelectorAll('details.fam').forEach(d=>d.querySelector('.list').scrollTop=st[d.dataset.f]||0);
+let openFam=null; /* category tab that is open */
+function draw(){const q=$('q').value.toLowerCase().trim(),fl=document.querySelector('#perks .flist'),st=fl?fl.scrollTop:0;
+ const order=['Fortitude','Brutality','Alacrity','Finesse','Insight'],cnt=f=>[...sel.keys()].filter(p=>D.perks[p][0]===f).length;
+ const rowsFor=fams=>fams.map(f=>Object.keys(D.perks).filter(p=>D.perks[p][0]===f&&(!q||p.toLowerCase().includes(q))).sort().map(p=>{const v=sel.get(p);
+  return `<div class="pr" ${fc(f)} data-tip="${esc(p)}">${q?cic(f):''}<span class="pn">${esc(p)}</span><span class="pb"><button data-p="${esc(p)}" data-n="1" class="${v===1?'on':''}">+3</button><button data-p="${esc(p)}" data-n="2" class="${v===2?'on':''}">+6</button></span></div>`}).join('')).join('');
+ const shown=q?order:(openFam?[openFam]:[]),body=shown.length?(rowsFor(shown)||'<span class="mu">No match</span>'):'<span class="mu">Choose a category above, or use the search.</span>';
+ $('perks').innerHTML=`<div class="ftabs">${order.map(f=>`<button class="ftab ${!q&&openFam===f?'on':''}" ${fc(f)} data-f="${f}" title="${f}" aria-label="${f}">${cic(f)}${cnt(f)?`<span class="fc">${cnt(f)}</span>`:''}</button>`).join('')}</div><div class="flist">${body}</div>`;
+ document.querySelector('#perks .flist').scrollTop=st;
+ document.querySelectorAll('#perks .ftab').forEach(b=>b.onclick=()=>{openFam=openFam===b.dataset.f&&!q?null:b.dataset.f;$('q').value='';draw()});
  document.querySelectorAll('.pb button').forEach(b=>b.onclick=()=>{const p=b.dataset.p,n=+b.dataset.n;sel.get(p)===n?sel.delete(p):sel.set(p,n);refresh()});
- document.querySelectorAll('details.fam').forEach(d=>d.ontoggle=()=>{d.open?openF.add(d.dataset.f):openF.delete(d.dataset.f)});
- document.querySelectorAll('details.fam summary').forEach(s=>s.addEventListener('click',()=>{const d=s.parentElement;if(!d.open)document.querySelectorAll('details.fam[open]').forEach(o=>{if(o!==d)o.open=false})}));
  $('cnt').textContent=sel.size?`· ${sel.size} selected`:'';
- const bar=$('bar');bar.innerHTML='<span id="actbox"></span>'+(sel.size?'<span class="mu">Your targets:</span>'+[...sel].map(([p,n])=>`<span class="sel" ${fc(D.perks[p][0])} style="background:var(--${D.perks[p][0]})" data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${n*3}<button data-r="${esc(p)}" title="Remove">×</button></span>`).join(''):'<span class="mu">Your targets: none yet, pick perks above</span>');updateActive();
+ const bar=$('bar');bar.innerHTML='<span id="actbox"></span>'+(sel.size?'<span class="mu">Your targets:</span>'+[...sel].map(([p,n])=>`<span class="sel" style="--c:var(--${D.perks[p][0]});background:var(--${D.perks[p][0]})" data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${n*3}<button data-r="${esc(p)}" title="Remove">×</button></span>`).join(''):'<span class="mu">Your targets: none yet, pick perks above</span>');updateActive();
  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{sel.delete(b.dataset.r);refresh()})}
 const snaps=[];let saved=[];try{saved=JSON.parse(localStorage.getItem('dlb_saved')||'[]')}catch(e){}
 const persist=()=>{try{localStorage.setItem('dlb_saved',JSON.stringify(saved))}catch(e){}};
 let activeId=null; /* id of the saved loadout the player is currently working on */
-const curOpts=()=>({wt:$('wt').value,wn:($('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||''),cv:$('cv').value,sg:$('sg').checked,lg:$('lg').checked,ex:$('ex').checked,lt:$('lt').value,om:$('om').value});
+const curOpts=()=>({wt:$('wt').value,wn:($('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||''),cv:$('cv').value,sg:$('sg').checked,lg:$('lg').checked,ex:$('ex').checked,lt:$('lt').value,om:$('om').value,pt:JSON.stringify(partSel)});
 let svT;function svmsg(t){const e=$('svmsg');e.textContent=t;clearTimeout(svT);svT=setTimeout(()=>e.textContent='',4000)}
 /* Saving under a name that already exists overwrites that loadout (it keeps its place in the list). */
 function save(bi){const s=snaps[bi];if(!s)return;
@@ -101,7 +101,7 @@ function save(bi){const s=snaps[bi];if(!s)return;
  const data={targets:[...sel],opts:curOpts(),items:s.items,tot:s.tot},k=typed?saved.findIndex(v=>v.name.toLowerCase()===typed.toLowerCase()):-1;
  if(k>=0){Object.assign(saved[k],data);activeId=saved[k].id;svmsg(`“${saved[k].name}” was overwritten.`)}else{const id=Date.now();saved.unshift({id,name,...data});activeId=id}
  persist();drawSaved();const b=document.querySelector(`.sv[data-bi="${bi}"]`);if(b)b.textContent=k>=0?'✓ Overwritten':'✓ Saved'}
-function loadPreset(v){activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg','ex'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
+function loadPreset(v){activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg','ex'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
 const preHtml=v=>{const o=v.opts||{};return `<b class="t">${esc(v.name)}</b><div class="tr">${v.targets.map(([p,n])=>D.perks[p]?`<div>${col(D.perks[p][0])}${esc(p)} <b>+${n*3}</b></div>`:'').join('')}</div><div class="tr mu">${o.wn?esc(o.wn):esc(o.wt||'Any')+' weapons'} · cells +${o.cv||3}${o.sg===false?' · not surged':''}${o.lg===false?' · no legendary':''}${o.ex?' · exotics':''}<br>Click to load</div>`};
 function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
  $('saved').innerHTML=saved.length?saved.map(v=>`<span class="pre" data-pre="${v.id}" tabindex="0">${esc(v.name)} <span class="mu">${v.targets.length} perk${v.targets.length==1?'':'s'}</span><button data-ow="${v.id}" title="Overwrite with your current perks and options">⟳</button><button data-del="${v.id}" title="Delete">×</button></span>`).join(''):'<span class="mu">No saved loadouts yet. Type a name on a build below and press ☆ Save.</span>';
@@ -112,7 +112,7 @@ function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
   if(e.target.dataset.del){saved=saved.filter(x=>x!==v);if(activeId===v.id)activeId=null;persist();tip.style.display='none';drawSaved();return}loadPreset(v)};el.onkeydown=e=>{if(e.key==='Enter')loadPreset(v)}});updateActive()}
 /* Shows which saved loadout is being edited and whether the current perks and options differ from it. */
 const sameState=v=>{const o=v.opts||{},c=curOpts();if(JSON.stringify([...sel].sort())!==JSON.stringify([...v.targets].sort()))return false;
- return ['wt','wn','cv','sg','lg','ex','lt','om'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
+ return ['wt','wn','cv','sg','lg','ex','lt','om','pt'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
 function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=null;
  const dirty=!!v&&!sameState(v);
  document.querySelectorAll('#saved .pre').forEach(el=>{const on=!!v&&el.dataset.pre==v.id;el.classList.toggle('act',on);el.classList.toggle('dirty',on&&dirty)});
@@ -121,8 +121,9 @@ function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=nu
  box.innerHTML=`<span class="actb">Editing: <b>${esc(v.name)}</b></span>`+(dirty?'<span class="warn">● unsaved changes</span><button class="pick" id="actsave">Save changes</button><button class="pick" id="actrev">Discard</button>':'<span class="good">✓ saved</span>')+'<button class="pick" id="actoff" title="Stop editing this loadout">Stop editing</button><span class="sep"></span>';
  if(dirty){$('actsave').onclick=()=>{Object.assign(v,{targets:[...sel],opts:curOpts()});persist();drawSaved();svmsg(`“${v.name}” was updated.`)};$('actrev').onclick=()=>loadPreset(v)}
  $('actoff').onclick=()=>{activeId=null;updateActive()}}
+function bindRes(){document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})}
 let tm;function calc(){updateActive();if(!sel.size){$('res').innerHTML='<div class="empty">👆 Pick one or more perks above to see the best builds.</div>';$('pc').innerHTML='';return}
- $('res').style.opacity=.45;clearTimeout(tm);tm=setTimeout(()=>{$('res').innerHTML=view(run());$('res').style.opacity=1;$('pc').innerHTML=table();document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})},20)}
+ $('res').style.opacity=.45;clearTimeout(tm);tm=setTimeout(()=>{lastRun=run();$('res').innerHTML=view(lastRun);$('res').style.opacity=1;$('pc').innerHTML=table();bindRes()},20)}
 function refresh(){draw();calc()}
 $('wt').innerHTML=['Any',...WTS].map(t=>`<option>${t}</option>`).join('');
 function fillWn(name){const wt=$('wt').value,v=$('wn').value,cur=name!==undefined?name:(v===''||v==='Any'?'':(D.wp[+v]||[])[0]);
@@ -138,6 +139,7 @@ const ORD=['Weapon','Lantern','Head','Torso','Arms','Legs','Omnicell'];
 function lanInfo(){const v=$('lt').value,l=v==='Any'?null:D.lan.find(x=>x[2]===v);
  return l?{rec:l,name:l[0],slot:l[1]==='Insight',ic:l[2],desc:l[3]}:{rec:null,name:'Any lantern with an Insight slot',slot:true,ic:(D.lan.find(x=>x[0]==="Shrike's Zeal")||D.lan[0])[2],desc:''}}
 function omniInfo(){const k=$('om').value,o=k?D.omni.find(x=>x[1]===k):null;return o?{rec:o,name:o[0],ic:o[1],desc:o[2]+'\n'+o[3]}:null}
+const partsFor=t=>{const o={},c=partSel[t]||{};Object.keys(c).forEach(k=>{if(c[k])o[k]=c[k]});return o};
 const byKeyW=new Map(D.wp.map(w=>[w[8],w])),byKeyA=new Map(D.arm.map(a=>[a[6],a])),byKeyL=new Map(D.lan.map(l=>[l[2],l])),byKeyO=new Map(D.omni.map(o=>[o[1],o]));
 const stripType=n=>n.replace(/ \[[^\]]+\]$/,'');
 function exportBuild(bi){
@@ -152,50 +154,79 @@ function exportBuild(bi){
  const armour={};
  AT.forEach(slot=>{const it=item(slot),rec=D.arm.find(a=>a[0]===it.nm[0]&&a[1]===slot);armour[slot]={key:rec?rec[6]:null,level:lvl};if(it.cells[0])put(slot,it.cells[0][1])});
  const li=item('Lantern');if(li&&li.cells[0])put('lan',li.cells[0][1]);
- const code=BuildCode.encode({weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,cells});
- $('expcode').value=code;msg.textContent='Code ready. Use Copy code.'}
+ const code=BuildCode.encode({weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,ex:$('ex').checked},cells});
+ $('expcode').value=code;$('iedet').open=true;msg.textContent='Code ready. Use Copy code.'}
 $('expcopy').onclick=async()=>{const t=$('expcode').value,m=$('expmsg');if(!t){m.textContent='Press ⇪ Export on a build first.';return}
  try{await navigator.clipboard.writeText(t);m.textContent='Copied.'}catch(e){m.textContent='Select the code and copy it manually.';$('expcode').select()}};
-let imported=null;
-function importBuild(){
- const msg=$('impmsg'),out=$('impview');out.innerHTML='';msg.className='mu';imported=null;
- let b;try{b=BuildCode.decode($('impin').value)}catch(e){msg.textContent=e.message;msg.className='warn';return}
- const W=byKeyW.get(b.weapon[0]);if(!W){msg.textContent='Unknown weapon in this code.';msg.className='warn';return}
+/* Import: restores the whole tool state of the code (targets, options, lantern, omnicell, parts) and pins the exact build above the search results. */
+let impB=null;
+function impInfo(b){
+ const W=byKeyW.get(b.weapon[0]);if(!W)return null;
  const bondRec=b.bond?byKeyW.get(b.bond):null,src=W[7]&&bondRec?bondRec:W,tot={},add=(p,v)=>{if(p)tot[p]=(tot[p]||0)+v};
  const gear=(perks,lvl)=>perks.forEach(([p,bv])=>add(p,lvl===1?3:bv));
  gear(src[5],b.weapon[1]);
  const cellFill=sock=>{const c=b.cells[sock];if(!c)return '';add(c[0],c[1]);return `${c[0]} +${c[1]}`};
  const L=b.lantern?byKeyL.get(b.lantern):null,O=b.omnicell?byKeyO.get(b.omnicell):null,rows=[];
- rows.push({lab:'Weapon',ic:W[8],nm:W[7]&&bondRec?`${W[0]} ⟷ ${bondRec[0]}`:W[0],fam:W[4],fill:W[4].map((_,i)=>cellFill('w'+i)),perks:src[5].map(([p,bv])=>[p,b.weapon[1]===1?3:bv])});
+ rows.push({lab:'Weapon',ic:W[8],nm:W[7]&&bondRec?`${W[0]} ⟷ ${bondRec[0]}`:W[0],fam:W[4],fill:W[4].map((_,i)=>cellFill('w'+i)),perks:src[5].map(([p,bv])=>[p,b.weapon[1]===1?3:bv]),parts:partsHtml(W[1])});
  const hasLan=L?L[1]==='Insight':true;
  rows.push({lab:'Lantern',ic:L?L[2]:lanInfo().ic,nm:L?L[0]:'Any lantern with an Insight slot',desc:L?L[3]:'',fam:hasLan?['Insight']:[],fill:hasLan?[cellFill('lan')]:[],perks:[]});
  for(const slot of AT){const a=b.armour[slot]||[null,1],rec=a[0]?byKeyA.get(a[0]):null;if(rec)gear(rec[4],a[1]);
   rows.push({lab:slot,ic:rec?rec[6]:null,nm:rec?rec[0]:'None',fam:rec&&rec[3]?[rec[3]]:[],fill:rec&&rec[3]?[cellFill(slot)]:[],perks:rec?rec[4].map(([p,bv])=>[p,a[1]===1?3:bv]):[]})}
  if(O)rows.push({lab:'Omnicell',ic:O[1],nm:O[0],desc:O[2]+'\n'+O[3],fam:[],fill:[],perks:[]});
- const ps=Object.entries(tot).filter(([p])=>D.perks[p]).sort((a,c)=>c[1]-a[1]);
- imported={weapon:W,level:b.weapon[1],lantern:L?L[2]:'Any',omni:O?O[1]:'',tot:ps};
- out.innerHTML=`<div class="build"><div class="bh"><span class="rank">Imported build</span><span class="mu">${b.weapon[1]===1?'Power surged':'Base level'}</span><button class="pick" id="impuse" style="margin-left:auto">Use these perks as targets</button></div>`+
-  rows.map(r=>`<div class="line"><span class="lab">${r.lab}</span><div class="gr">${r.ic?img(r.ic):''}<div class="gb"><span class="gn">${esc(r.nm)}</span>${r.desc?`<div class="mu desc">${esc(r.desc)}</div>`:''}<div>${r.fam.map((f,i)=>slotB(CI[f],r.fill[i])).join('')}${r.perks.map(([p,v])=>D.perks[p]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${v}</span>`:'').join('')}</div></div></div></div>`).join('')+
-  `<div class="tot">`+ps.map(([p,t])=>`<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=6?'good':''}">+${Math.min(6,t)}</b><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`).join('')+`</div></div>`;
- $('impuse').onclick=()=>{sel.clear();imported.tot.forEach(([p,t])=>{if(t>=6)sel.set(p,2);else if(t>=3)sel.set(p,1)});
-  $('sg').checked=imported.level===1;$('wt').value=imported.weapon[1];fillWn(imported.weapon[0]);
-  $('lt').value=[...$('lt').options].some(x=>x.value===imported.lantern)?imported.lantern:'Any';$('om').value=[...$('om').options].some(x=>x.value===imported.omni)?imported.omni:'';
-  refresh();window.scrollTo({top:0,behavior:'smooth'})};
- msg.textContent=`Imported: ${W[0]}${bondRec&&W[7]?' bonded with '+bondRec[0]:''}.`}
+ return {W,bondRec,L,O,rows,ps:Object.entries(tot).filter(([p])=>D.perks[p]).sort((a,c)=>c[1]-a[1])};
+}
+function renderImported(){const out=$('impview');
+ if(!impB){out.innerHTML='';return}
+ const I=impInfo(impB);if(!I){out.innerHTML='';return}
+ out.innerHTML=`<div class="build"><div class="bh"><span class="rank">Imported build</span><span class="mu">${impB.weapon[1]===1?'Power surged':'Base level'} · everything from the code was applied to the tool</span><button class="pick" id="impclose" style="margin-left:auto">✕ Close</button></div>`+
+  I.rows.map(r=>`<div class="line"><span class="lab">${r.lab}</span><div class="gr">${r.ic?img(r.ic):''}<div class="gb"><span class="gn">${esc(r.nm)}</span>${r.desc?`<div class="mu desc">${esc(r.desc)}</div>`:''}<div>${r.fam.map((f,i)=>slotB(CI[f],r.fill[i])).join('')}${r.perks.map(([p,v])=>D.perks[p]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${v}</span>`:'').join('')}</div>${r.parts||''}</div></div></div>`).join('')+
+  `<div class="tot">`+I.ps.map(([p,t])=>{const tg=sel.has(p)?sel.get(p)*3:0;return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=6||(tg&&t>=tg)?'good':''}">+${Math.min(6,t)}</b>${tg?`<span class="mu"> / ${tg}</span>`:''}<div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+`</div></div>`;
+ $('impclose').onclick=()=>{impB=null;renderImported()}}
+function importBuild(){
+ const msg=$('impmsg');msg.className='mu';
+ let b;try{b=BuildCode.decode($('impin').value)}catch(e){msg.textContent=e.message;msg.className='warn';return}
+ const I=impInfo(b);if(!I){msg.textContent='Unknown weapon in this code.';msg.className='warn';return}
+ const o=b.opts||{},W=I.W;impB=b;
+ sel.clear();
+ if(b.targets&&b.targets.length)b.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});
+ else I.ps.forEach(([p,t])=>{if(t>=6)sel.set(p,2);else if(t>=3)sel.set(p,1)});
+ $('sg').checked=b.weapon[1]===1;
+ if('lg' in o)$('lg').checked=!!o.lg;if('ex' in o)$('ex').checked=!!o.ex;
+ const ranks=Object.values(b.cells).map(c=>c[1]);$('cv').value=String(o.cv||(ranks.length?Math.max(...ranks):3));
+ $('wt').value=[...$('wt').options].some(x=>x.value===o.wt)?o.wt:W[1];
+ fillWn(o.wt!==undefined?(o.wn||''):W[0]);
+ $('lt').value=[...$('lt').options].some(x=>x.value===(b.lantern||'Any'))?(b.lantern||'Any'):'Any';
+ $('om').value=[...$('om').options].some(x=>x.value===(b.omnicell||''))?(b.omnicell||''):'';
+ if(b.parts&&Object.keys(b.parts).length){partSel[W[1]]=b.parts;savePart()}
+ activeId=null;refresh();renderImported();
+ msg.textContent=`Imported: ${W[0]}${I.bondRec&&W[7]?' bonded with '+I.bondRec[0]:''}. Targets and options were restored.`;
+ $('impview').scrollIntoView({block:'nearest',behavior:'smooth'})}
+document.addEventListener('change',e=>{const el=e.target.closest&&e.target.closest('.ps');if(!el)return;
+ (partSel[el.dataset.t]=partSel[el.dataset.t]||{})[el.dataset.k]=el.value;if(!el.value)delete partSel[el.dataset.t][el.dataset.k];savePart();
+ if(lastRun){$('res').innerHTML=view(lastRun);bindRes()}if(impB)renderImported();updateActive()});
 $('impbtn').onclick=importBuild;
 $('impin').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))importBuild()});
 $('lt').insertAdjacentHTML('beforeend',D.lan.map(l=>`<option value="${esc(l[2])}">${esc(l[0])}${l[1]?'':' (no cell slot)'}</option>`).join(''));
 $('om').insertAdjacentHTML('beforeend',D.omni.map(o=>`<option value="${esc(o[1])}">${esc(o[0])}</option>`).join(''));
 
 /* ---------- Icons and "don't have" buttons in the builds ---------- */
+/* ---------- Weapon parts (mods, specials, chambers, grips). They only add effects and are remembered per weapon type. ---------- */
+let partSel={};try{partSel=JSON.parse(localStorage.getItem('dlb_parts')||'{}')}catch(e){}
+const savePart=()=>{try{localStorage.setItem('dlb_parts',JSON.stringify(partSel))}catch(e){}};
+const PART_LABEL={mod:'Mod',special:'Special',chamber:'Chamber',grip:'Grip'};
+const weaponTypeOf=nm=>{if(nm.includes(' ⟷ ')){const l=D.wp.find(x=>x[0]===nm.split(' ⟷ ')[0]&&x[7]);return l?l[1]:''}const m=nm.match(/\[([^\]]+)\]$/);return m?m[1]:''};
+function partsHtml(type){const P=D.parts&&D.parts[type];if(!P)return '';const cur=partSel[type]||{};
+ return '<div class="parts">'+['chamber','grip','mod','special'].filter(k=>P[k]).map(k=>{const sel=P[k].find(p=>p[1]===cur[k]);
+  return `<div class="part"><label>${PART_LABEL[k]} <select class="ps" data-t="${esc(type)}" data-k="${k}"><option value="">None</option>${P[k].map(p=>`<option value="${esc(p[1])}" ${p[1]===cur[k]?'selected':''}>${esc(p[0])}${p[3]?' ★':''}</option>`).join('')}</select></label>${sel?`<div class="mu desc">${img(sel[1],'xs')}${esc(sel[2])}</div>`:''}</div>`}).join('')+'</div>'}
+let lastRun=null;
 function rowInfo(it){
  const nm=it.nm[0];
  if(it.lab==='Lantern'){const L=lanInfo();return {ic:L.ic,ex:[],desc:L.desc}}
  if(it.lab==='Omnicell'){const O=omniInfo();return {ic:O&&O.ic,ex:[],desc:O&&O.desc}}
  if(it.lab==='Weapon'){
   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ '),L=D.wp.find(x=>x[0]===l&&x[7]),P=D.wp.find(x=>x[0]===w&&!x[7]);
-   return {ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
-  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
+   return {parts:partsHtml(weaponTypeOf(nm)),ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
+  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {parts:partsHtml(weaponTypeOf(nm)),ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
  const r=D.arm.find(a=>a[0]===nm&&a[1]===it.lab);return {ic:r&&r[6],ex:r?[{k:r[6],n:r[0],t:"Don't have"}]:[]}}
 function drawExcl(){const el=$('exb');
  el.innerHTML=excl.size?`<div class="exbar"><span class="mu">Marked as missing:</span>${[...excl].map(([k,n])=>`<span class="xchip">${esc(n)}<button data-r="${esc(k)}" title="I have it again">×</button></span>`).join('')}<button class="pick" id="exreset">Reset all</button></div>`:'';
@@ -205,4 +236,8 @@ function afterExcl(){saveExcl();drawExcl();fillWn();calc()}
 $('res').addEventListener('click',e=>{const b=e.target.closest('.xbtn');if(!b)return;excl.set(b.dataset.k,b.dataset.n);afterExcl()});
 drawExcl();
 
+/* Fullscreen toggle (hidden where the browser does not allow it) */
+(()=>{const b=$('fs');if(!b)return;if(!document.fullscreenEnabled){b.hidden=true;return}
+ b.onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}};
+ document.addEventListener('fullscreenchange',()=>b.textContent=document.fullscreenElement?'⛶ Exit fullscreen':'⛶ Fullscreen')})();
 })().catch(err => { document.body.insertAdjacentHTML('afterbegin', '<p style="padding:16px;color:#b3261e">Could not start: ' + err.message + '. If you opened the file directly, serve it with a local web server instead (python3 -m http.server).</p>'); });

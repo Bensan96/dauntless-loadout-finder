@@ -8,14 +8,14 @@
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body><main>
-<div class="hero"><h1>Dauntless Loadout Builder</h1><span class="pill">v1.14.7</span></div>
+<div class="hero"><h1>Dauntless Loadout Builder</h1><span class="pill">v1.14.7</span><button class="pick" id="fs" style="margin-left:auto" title="Show the tool fullscreen">⛶ Fullscreen</button></div>
 <p class="sub">Pick the perks and totals you want. The tool searches every weapon, armor piece and lantern, then shows exactly which cell goes into which slot. Hover any perk to read what it does.</p>
+<div class="layout"><aside class="side">
 <div class="card"><div class="ch"><span class="num">★</span><h2>Saved loadouts <span class="mu" id="svn"></span></h2></div><div id="saved" class="grid2"></div><p class="mu" style="margin:10px 0 0">Hover a preset to see its perks, click it to load them and search again. Saved in this browser only. Use ⟳ on a preset to overwrite it with your current perks and options, or save a build under the same name. <b id="svmsg" class="good"></b></p></div>
 <div class="card"><div class="ch"><span class="num">1</span><h2>Choose your perks <span class="mu" id="cnt"></span></h2></div>
 <div class="tools"><input type="search" id="q" placeholder="Search perks…"><button id="clr" class="pick">Clear all</button>
-<span class="mu">Open a family, then press +3 or +6 next to a perk. Press it again to remove.</span></div>
+<span class="mu">Pick a category icon, then press +3 or +6 next to a perk. Press it again to remove.</span></div>
 <div class="fams" id="perks"></div></div>
-<div class="bar" id="bar"></div>
 <div class="card"><div class="ch"><span class="num">2</span><h2>Options</h2></div><div class="opts">
 <label class="sw">Weapon type <select id="wt"></select></label>
 <label class="sw">Weapon <select id="wn"></select></label>
@@ -25,8 +25,11 @@
 <label class="sw"><input type="checkbox" id="ex"> Exotics</label>
 <label class="sw">Lantern <select id="lt"><option value="Any">Any (Insight slot)</option></select></label>
 <label class="sw">Omnicell <select id="om"><option value="">None</option></select></label></div></div>
-<div class="card"><div class="ch"><span class="num">3</span><h2>Best builds</h2></div><div id="exb"></div><div id="res"></div></div>
-<div class="card"><div class="ch"><span class="num">⇄</span><h2>Import / Export</h2></div>
+</aside><div class="content">
+<div class="bar" id="bar"></div>
+<div class="card"><div class="ch"><span class="num">3</span><h2>Best builds</h2></div><div id="impview"></div><div id="exb"></div><div id="res"></div></div>
+<div class="card"><div class="ch"><span class="num">4</span><h2>Gear that already has your perks</h2></div><div id="pc" class="sc"></div></div>
+<details id="iedet" class="card iedet"><summary>Import / export a build code</summary>
 <div class="ie">
 <div><h3>Export</h3><p class="mu">Press “⇪ Export” on a build above to get a code you can keep or send to a friend. It only works in this tool.</p>
 <textarea id="expcode" class="cb" readonly placeholder="Your build code appears here"></textarea>
@@ -34,9 +37,9 @@
 <div><h3>Import</h3><p class="mu">Paste a code from this tool (it starts with DLF1.).</p>
 <textarea id="impin" class="cb" placeholder="DLF1.…"></textarea>
 <div class="row2"><button class="pick" id="impbtn">Import</button><span class="mu" id="impmsg"></span></div></div>
-</div><div id="impview"></div></div>
-<div class="card"><div class="ch"><span class="num">4</span><h2>Gear that already has your perks</h2></div><div id="pc" class="sc"></div></div>
+</div></details>
 <p class="mu">Data: Dauntless Builder Reforged (game data 1.14.6, the newest available). Armor has one perk and one typed cell slot, weapons have two slots, the lantern has an Insight slot, and a perk caps at +6. A cell only fits a slot of its own family; Prismatic slots take any cell. Legendary weapons have two Prismatic slots and copy the perk of the weapon they are bonded with. Omnicells and weapon parts don’t change perk totals and aren’t included.</p>
+</div></div>
 <div id="tip"></div>
 <footer class="mu" style="margin-top:18px">
 Fan-made tool, not affiliated with Phoenix Labs. Dauntless and all related assets are property of Phoenix Labs.
@@ -45,7 +48,7 @@ See <a href="NOTICE.md">NOTICE</a>.
 </footer>
 </main>
 <script src="data/game-data.js"></script>
-<script src="assets/js/cell-icons.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/buildcode.js"></script>
 <script src="assets/js/app.js" defer></script>
 </body>

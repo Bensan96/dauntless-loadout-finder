@@ -1,6 +1,6 @@
 # Dauntless Loadout Finder
 
-A tool that finds the weapon, armor and cell combination for the perk totals you want in
+A static website that finds the weapon, armor and cell combination for the perk totals you want in
 Dauntless (game version 1.14.x). Pick perks at +3 or +6, and the tool searches every weapon, armor
 piece and the lantern slot and shows which cell goes where. Saved loadouts are stored in your browser.
 
@@ -46,11 +46,19 @@ python3 scripts/build_data.py
 This rewrites `data/game-data.js` and `data/game-data.json`. You can also run the **Update game data** workflow from the Actions tab.
 The format of the generated file is described at the top of `scripts/build_data.py` and in the comments of its output section.
 
+## Publish on GitHub Pages
+
+1. Create a repository and push this folder to the `main` branch.
+2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main` (or run the *Deploy to GitHub Pages* workflow). The site appears at the URL shown in the workflow run.
+
 ## Import and export
 
-Press **⇪ Export** on a build to get a `DLF1.…` code. Paste a code into **Import** to see the build again and to use its
-perks, weapon, lantern and omnicell as the new targets. The codes only work in this tool. They store item keys (the data
-file paths) and the cells by perk name, see `assets/js/buildcode.js`.
+Open **Import / export a build code** at the bottom of the page. Press **⇪ Export** on a build to get a `DLF1.…` code. The
+code holds the whole build and the whole tool state: weapon (and bond), every armor piece, each cell in its slot with its
+strength, lantern, omnicell, weapon parts, power surged, your perk targets and the options (weapon type, weapon, cell
+strength, legendary bonds, exotics). **Import** restores all of it, pins the exact build above the search results and runs
+the search again. The codes only work in this tool, see `assets/js/buildcode.js`.
 
 ## Lantern and omnicell
 
@@ -64,12 +72,18 @@ Every weapon and armor piece in the build results has a **✕ Don't have** butto
 item (for a legendary weapon you can exclude the legendary or its bond partner). Excluded gear is listed above the
 results, where you can put single items back or **Reset all**. The list is stored in the browser (`localStorage`).
 
+## Weapon mods
+
+The weapon row of every build has pickers for the weapon parts of its type (mod and special, and chamber, grip and mod for
+repeaters), with the effect text and picture of the chosen part. Parts only add effects, so they don't change perk totals.
+The choice is remembered per weapon type, saved in loadouts and included in build codes.
+
 ## Icons
 
-Item pictures are small webp files in `assets/icons/<item key>.webp`, made from the 128 px images of Dauntless
-Builder Reforged by `scripts/build_icons.py` (needs `pip install pillow`). The six cell family symbols are in
-`assets/icons/cells/` and are drawn as a mask, so they take the colour of their family. Browsers do not load mask images
-from `file://` paths, so the same six images are also stored as data URIs in `assets/js/cell-icons.js` (written by the same script). The images are artwork of Phoenix Labs.
+All pictures (items, lanterns, omnicells, weapon parts and the six cell family symbols) are stored as small webp data URIs in
+one file, `assets/js/icons.js`, which `scripts/build_icons.py` writes from the 128 px images of Dauntless Builder Reforged
+(needs `pip install pillow`). One file instead of about 450 images keeps the repository small and easy to upload. The cell
+symbols are drawn as a mask so they take the colour of their family. The images are artwork of Phoenix Labs.
 
 ## How the rules are modelled
 
@@ -78,7 +92,7 @@ from `file://` paths, so the same six images are also stored as data URIs in `as
 - The lantern has one Insight slot. A Prismatic slot accepts any cell.
 - A perk is capped at +6. Power surged gear gives +3 per perk, cells give +1 to +3.
 
-Omnicells and weapon parts do not change perk totals and are not included.
+Omnicells and weapon parts do not change perk totals; they are shown in the build for planning.
 
 ## License and credits
 
