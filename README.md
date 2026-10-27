@@ -1,6 +1,6 @@
 # Dauntless Loadout Finder
 
-A static website that finds the weapon, armor and cell combination for the perk totals you want in
+A tool that finds the weapon, armor and cell combination for the perk totals you want in
 Dauntless (game version 1.14.x). Pick perks at +3 or +6, and the tool searches every weapon, armor
 piece and the lantern slot and shows which cell goes where. Saved loadouts are stored in your browser.
 
