@@ -46,12 +46,6 @@ python3 scripts/build_data.py
 This rewrites `data/game-data.js` and `data/game-data.json`. You can also run the **Update game data** workflow from the Actions tab.
 The format of the generated file is described at the top of `scripts/build_data.py` and in the comments of its output section.
 
-## Publish on GitHub Pages
-
-1. Create a repository and push this folder to the `main` branch.
-2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
-3. Push to `main` (or run the *Deploy to GitHub Pages* workflow). The site appears at the URL shown in the workflow run.
-
 ## Import and export
 
 Open **Import / export a build code** at the bottom of the page. Press **⇪ Export** on a build to get a `DLF1.…` code. The
