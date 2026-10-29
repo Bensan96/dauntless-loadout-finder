@@ -23,7 +23,7 @@ def webp(png, quality):
     return 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
 
 icons = {}
-for kind in ('armours', 'weapons', 'lanterns', 'omnicells', 'parts'):
+for kind in ('armours', 'weapons', 'lanterns', 'omnicells', 'parts', 'elements'):
     for png in sorted(glob.glob(os.path.join(base, kind, '**', '*.png'), recursive=True)):
         icons[os.path.relpath(png, base)[:-4].replace(os.sep, '/')] = webp(png, 82)
 # The cell symbols are white on transparent; the page draws them as masks so they take the colour of their family.

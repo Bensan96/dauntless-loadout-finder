@@ -7,10 +7,15 @@ const AT=['Head','Torso','Arms','Legs'],WTS=[...new Set(D.wp.map(w=>w[1]))].sort
 const $=id=>document.getElementById(id),sel=new Map();
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 /* Gear the player marked as "don't have": Map(itemKey -> name), kept in the browser. Search and weapon list skip these items. */
+let pins={}; /* pinned armor pieces by slot (key), set in the advanced filters */
 let excl=new Map();try{excl=new Map(Object.entries(JSON.parse(localStorage.getItem('dlb_excl')||'{}')))}catch(e){}
 const saveExcl=()=>{try{localStorage.setItem('dlb_excl',JSON.stringify(Object.fromEntries(excl)))}catch(e){}};
 const icon=k=>(window.__ICONS__&&window.__ICONS__[k])||'';
 const img=(k,cls)=>`<img class="gi ${cls||''}" src="${icon(k)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+const EL=['Blaze','Frost','Radiant','Shock','Terra','Umbral'];
+$('resg').innerHTML=EL.map(el=>`<label class="resc">${img('elements/'+el,'')}<span>${el}</span><select id="res-${el}"><option value="">Any</option><option value="0">No weakness (≥ 0%)</option><option value="30">≥ 30%</option><option value="60">≥ 60%</option><option value="90">≥ 90%</option><option value="120">≥ 120%</option></select></label>`).join('');
+EL.forEach(el=>$('res-'+el).onchange=advChanged);$('exm').onchange=advChanged;$('pq').oninput=showPieceResults;
+$('wn').addEventListener('change',()=>{renderPins()});
 const val=b=>$('sg').checked?3:b,cv=()=>+$('cv').value;
 const col=t=>`<span style="color:var(--${t})">${cic(t)}</span>`;
 /* Cell family icons (the game's own artwork, white on transparent) are drawn as a mask so they take the family colour. */
@@ -18,19 +23,20 @@ function cic(fam){return `<span class="ci" style="--m:url('${icon('cells/'+fam)}
 const slot=t=>`<span class="sl" style="background:var(--${t})">${t}</span>`;
 const short=n=>n.slice(0,3).join(' / ')+(n.length>3?` +${n.length-3} more`:'');
 
-function covers(Y,X){ if(Y.c.some((v,i)=>v<X.c[i]))return false;
+function covers(Y,X){ if(Y.x<X.x||Y.c.some((v,i)=>v<X.c[i])||Y.r.some((v,i)=>v<X.r[i]))return false;
  const free=[...Y.cells];for(const s of [...X.cells].sort((a,b)=>b-a)){const j=free.findIndex(y=>y===s||(y===5&&s!==5)); if(j<0)return false;free.splice(j,1)}return true}
-function mkClasses(items,idx,k){const m=new Map();
+function mkClasses(items,idx,k,only){const m=new Map();
  items.forEach(it=>{const c=new Array(k).fill(0);it.p.forEach(([p,b])=>{if(p in idx)c[idx[p]]+=val(b)});
-  const cells=it.cells.map(x=>CI[x]).sort((a,b)=>a-b),key=c.join()+'|'+cells.join();
-  if(!m.has(key))m.set(key,{c,cells,names:[]});m.get(key).names.push(it.n)});
+  const cells=it.cells.map(x=>CI[x]).sort((a,b)=>a-b),r=it.r||[],x=only&&it.x?1:0,key=c.join()+'|'+cells.join()+'|'+r.join()+'|'+x;
+  if(!m.has(key))m.set(key,{c,cells,r,x,names:[]});m.get(key).names.push(it.n)});
  const a=[...m.values()];return a.filter(x=>!a.some(y=>y!==x&&covers(y,x)))}
-function pools(){const wt=$('wt').value,ex=$('ex').checked,R=[...sel.keys()],k=R.length,idx={};R.forEach((p,i)=>idx[p]=i);
- const arm=AT.map(t=>mkClasses(D.arm.filter(a=>a[1]===t&&(ex||!a[5])&&!excl.has(a[6])).map(a=>({n:a[0],cells:a[3]?[a[3]]:[],p:a[4]})),idx,k));
+function pools(){const wt=$('wt').value,exm=exMode(),ex=exm!=='exclude',only=exm==='only',R=[...sel.keys()],k=R.length,idx={};R.forEach((p,i)=>idx[p]=i);
+ const arm=AT.map(t=>{const pin=pins[t]&&byKeyA.get(pins[t]),list=pin?[pin]:D.arm.filter(a=>a[1]===t&&(ex||!a[5])&&!excl.has(a[6]));
+  return mkClasses(list.map(a=>({n:a[0],cells:a[3]?[a[3]]:[],p:a[4],r:resVec(a),x:a[5]})),idx,k,only)});
  const pk=$('wn').value,one=pk===''||pk==='Any'?null:D.wp[+pk];
- const normal=D.wp.filter(w=>!w[7]&&(wt==='Any'||w[1]===wt)&&(ex||!w[6])&&!excl.has(w[8])),items=one?(one[7]?[]:[{n:one[0]+' ['+one[1]+']',cells:one[4],p:one[5]}]):normal.map(w=>({n:w[0]+' ['+w[1]+']',cells:w[4],p:w[5]}));
- if(one?one[7]:$('lg').checked)D.wp.filter(l=>l[7]&&!excl.has(l[8])&&(one?l===one:(wt==='Any'||l[1]===wt))).forEach(l=>normal.filter(w=>w[1]===l[1]&&w[3]===l[7]&&w[5].length).forEach(w=>items.push({n:l[0]+' ⟷ '+w[0],cells:l[4],p:w[5]})));
- return [...arm,mkClasses(items,idx,k)]}
+ const normal=D.wp.filter(w=>!w[7]&&(wt==='Any'||w[1]===wt)&&(ex||!w[6])&&!excl.has(w[8])),items=one?(one[7]?[]:[{n:one[0]+' ['+one[1]+']',cells:one[4],p:one[5],x:one[6]}]):normal.map(w=>({n:w[0]+' ['+w[1]+']',cells:w[4],p:w[5],x:w[6]}));
+ if(one?one[7]:$('lg').checked)D.wp.filter(l=>l[7]&&!excl.has(l[8])&&(one?l===one:(wt==='Any'||l[1]===wt))).forEach(l=>normal.filter(w=>w[1]===l[1]&&w[3]===l[7]&&w[5].length).forEach(w=>items.push({n:l[0]+' ⟷ '+w[0],cells:l[4],p:w[5],x:l[6]||w[6]})));
+ return [...arm,mkClasses(items,idx,k,only)]}
 function run(){
  const R=[...sel.keys()],k=R.length,tg=R.map(p=>sel.get(p)*3),cvv=cv(),ty=R.map(p=>CI[D.perks[p][0]]),lan=lanInfo().slot?1:0,P=pools();
  const base=cs=>{const gear=new Array(k).fill(0),n=[0,0,0,0,lan,0];for(const c of cs){for(let i=0;i<k;i++)gear[i]+=c.c[i];for(const s of c.cells)n[s]++}return {gear,n}};
@@ -43,9 +49,11 @@ function run(){
   const slots=n.reduce((a,b)=>a+b,0),used=tk.reduce((a,b)=>a+b,0)+pk.reduce((a,b)=>a+b,0);return {gear,tot,tk,pk,score,ok,spare:slots-used,slots}};
  const [H,T,A,Lg,W]=P;let top=[],feasible=false;
  const keep=(r,key)=>{top.push({...r,key});if(top.length>300){top.sort((a,b)=>b.key-a.key);top=top.slice(0,40)}};
- for(const h of H)for(const t of T)for(const a of A)for(const l of Lg)for(const w of W){const cs=[h,t,a,l,w],r=fast(cs);if(r.ok){feasible=true;keep({cs},r.spare*100+r.gp)}}
- if(!feasible){top=[];for(const h of H)for(const t of T)for(const a of A)for(const l of Lg)for(const w of W){const cs=[h,t,a,l,w],d=detail(cs);keep({cs},d.score*100+d.spare)}}
- top.sort((a,b)=>b.key-a.key);return {R,tg,feasible,res:top.slice(0,6).map(x=>({cs:x.cs,d:detail(x.cs)})),cvv,ty,lan}}
+ const cfg=resCfg(),only=exMode()==='only',resOk=(h,t,a,l)=>cfg.E.every((_,i)=>h.r[i]+t.r[i]+a.r[i]+l.r[i]>=cfg.req[i]);
+ const walk=fn=>{for(const h of H)for(const t of T)for(const a of A)for(const l of Lg){if(cfg.E.length&&!resOk(h,t,a,l))continue;for(const w of W){if(only&&!(h.x||t.x||a.x||l.x||w.x))continue;fn([h,t,a,l,w])}}};
+ walk(cs=>{const r=fast(cs);if(r.ok){feasible=true;keep({cs},r.spare*100+r.gp)}});
+ if(!feasible){top=[];walk(cs=>{const d=detail(cs);keep({cs},d.score*100+d.spare)})}
+ top.sort((a,b)=>b.key-a.key);return {R,tg,feasible,res:top.slice(0,6).map(x=>({cs:x.cs,d:detail(x.cs)})),cvv,ty,lan,resFilter:cfg.E.length>0}}
 const tipHtml=p=>{const d=D.perks[p],c=d[2]||{};const tr=t=>c[t]&&c[t].length?`<div class="tr"><b>At +${t}</b><ul>${c[t].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
  return `<b class="t">${cic(d[0])}${esc(p)}</b> <span class="mu">${d[0]}</span><div>${esc(d[1])}</div>${tr(3)}${tr(6)}`};
 const tip=$('tip');
@@ -63,7 +71,7 @@ document.addEventListener('scroll',()=>tip.style.display='none',true);
 const fc=t=>`style="--c:var(--${t})"`;
 const slotB=(s,f)=>`<span class="sl ${f?'f':''}" ${fc(s===5?'Prismatic':CN[s])}>${cic(CN[s])}${CN[s]}${f?' → '+esc(f):''}</span>`;
 function view(o){const {R,tg,feasible,res,cvv,ty,lan}=o,names=['Head','Torso','Arms','Legs','Weapon'];
- snaps.length=0;if(!res.length)return '<div class="empty">'+(excl.size?'No build is possible without the gear you marked as missing. Reset it above or loosen your targets.':'No gear found for these options.')+'</div>';
+ snaps.length=0;if(!res.length)return '<div class="empty">'+(o.resFilter?'No armor combination reaches your resistance filter. Loosen it in “Advanced filters”.':excl.size?'No build is possible without the gear you marked as missing. Reset it above or loosen your targets.':'No gear found for these options.')+'</div>';
  return (feasible?'':'<p class="warn">No combination reaches every target. These are the closest builds.</p>')+res.map((x,bi)=>{
   const LN=lanInfo(),OM=omniInfo(),items=[{lab:'Lantern',cells:LN.slot?[4]:[],nm:[LN.name],c:null},...x.cs.map((c,i)=>({lab:names[i],cells:c.cells,nm:c.names,c:c.c}))].sort((a,b)=>ORD.indexOf(a.lab)-ORD.indexOf(b.lab));
   if(OM)items.push({lab:'Omnicell',cells:[],nm:[OM.name],c:null});
@@ -71,8 +79,8 @@ function view(o){const {R,tg,feasible,res,cvv,ty,lan}=o,names=['Head','Torso','A
   R.forEach((p,i)=>{const put=(want,n)=>{for(let j=0;j<items.length&&n>0;j++)items[j].cells.forEach((s,q)=>{if(n>0&&!fills[j][q]&&s===want){fills[j][q]=p;n--}})};put(ty[i],x.d.tk[i]);put(5,x.d.pk[i])});
   snaps[bi]={items:items.map((it,j)=>({lab:it.lab,nm:it.nm.slice(0,12),cells:it.cells.map((s,q)=>[s,fills[j][q]||''])})),tot:R.map((p,i)=>[p,x.d.tot[i],tg[i]])};const perkTags=it=>it.c?R.map((p,i)=>it.c[i]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${it.c[i]}</span>`:'').join(''):'';
   return `<div class="build"><div class="bh"><span class="rank">#${bi+1}</span>${x.d.ok?'<span class="good">✓ Reaches every target</span>':'<span class="warn">Misses a target</span>'}<span class="mu">${x.d.slots-x.d.spare} of ${x.d.slots} cell slots used</span><input class="sn nn" id="nm${bi}" placeholder="Name this loadout" maxlength="40" style="margin-left:auto;max-width:190px"><button class="pick sv" data-bi="${bi}">☆ Save</button><button class="pick xp" data-bi="${bi}">⇪ Export</button></div>`+
-  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}</div>${rk.parts||''}</div></div></div>`}).join('')+
-  `<div class="tot">`+R.map((p,i)=>{const t=x.d.tot[i],cn=x.d.tk[i]+x.d.pk[i];return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=tg[i]?'good':'warn'}">+${Math.min(6,t)}</b><span class="mu"> / ${tg[i]} · ${x.d.gear[i]} gear + ${cn} cell${cn==1?'':'s'}</span><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+'</div></div>'}).join('')}
+  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.exo?'<span class="exo">★ Exotic</span>':''}${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}${rk.res||''}</div>${rk.parts||''}</div></div></div>`}).join('')+
+  `<div class="tot">`+R.map((p,i)=>{const t=x.d.tot[i],cn=x.d.tk[i]+x.d.pk[i];return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=tg[i]?'good':'warn'}">+${Math.min(6,t)}</b><span class="mu"> / ${tg[i]} · ${x.d.gear[i]} gear + ${cn} cell${cn==1?'':'s'}</span><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+'</div>'+resHtml(items)+craftHtml(items)+'</div>'}).join('')}
 function table(){const R=[...sel.keys()];
  const rows=[...D.arm.filter(a=>a[4].some(p=>sel.has(p[0]))).map(a=>[a[0],a[1],a[2],[a[3]],a[4],a[5],a[6]]),...D.wp.filter(w=>!w[7]&&w[5].some(p=>sel.has(p[0]))).map(w=>[w[0],w[1],w[2],w[4],w[5],w[6],w[8]])];
  const none=R.filter(p=>!rows.some(r=>r[4].some(x=>x[0]===p)));
@@ -93,7 +101,7 @@ function draw(){const q=$('q').value.toLowerCase().trim(),fl=document.querySelec
 const snaps=[];let saved=[];try{saved=JSON.parse(localStorage.getItem('dlb_saved')||'[]')}catch(e){}
 const persist=()=>{try{localStorage.setItem('dlb_saved',JSON.stringify(saved))}catch(e){}};
 let activeId=null; /* id of the saved loadout the player is currently working on */
-const curOpts=()=>({wt:$('wt').value,wn:($('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||''),cv:$('cv').value,sg:$('sg').checked,lg:$('lg').checked,ex:$('ex').checked,lt:$('lt').value,om:$('om').value,pt:JSON.stringify(partSel)});
+const curOpts=()=>({wt:$('wt').value,wn:($('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||''),cv:$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:JSON.stringify(advState()),lt:$('lt').value,om:$('om').value,pt:JSON.stringify(partSel)});
 let svT;function svmsg(t){const e=$('svmsg');e.textContent=t;clearTimeout(svT);svT=setTimeout(()=>e.textContent='',4000)}
 /* Saving under a name that already exists overwrites that loadout (it keeps its place in the list). */
 function save(bi){const s=snaps[bi];if(!s)return;
@@ -101,7 +109,7 @@ function save(bi){const s=snaps[bi];if(!s)return;
  const data={targets:[...sel],opts:curOpts(),items:s.items,tot:s.tot},k=typed?saved.findIndex(v=>v.name.toLowerCase()===typed.toLowerCase()):-1;
  if(k>=0){Object.assign(saved[k],data);activeId=saved[k].id;svmsg(`“${saved[k].name}” was overwritten.`)}else{const id=Date.now();saved.unshift({id,name,...data});activeId=id}
  persist();drawSaved();const b=document.querySelector(`.sv[data-bi="${bi}"]`);if(b)b.textContent=k>=0?'✓ Overwritten':'✓ Saved'}
-function loadPreset(v){activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg','ex'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
+function loadPreset(v){activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
 const preHtml=v=>{const o=v.opts||{};return `<b class="t">${esc(v.name)}</b><div class="tr">${v.targets.map(([p,n])=>D.perks[p]?`<div>${col(D.perks[p][0])}${esc(p)} <b>+${n*3}</b></div>`:'').join('')}</div><div class="tr mu">${o.wn?esc(o.wn):esc(o.wt||'Any')+' weapons'} · cells +${o.cv||3}${o.sg===false?' · not surged':''}${o.lg===false?' · no legendary':''}${o.ex?' · exotics':''}<br>Click to load</div>`};
 function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
  $('saved').innerHTML=saved.length?saved.map(v=>`<span class="pre" data-pre="${v.id}" tabindex="0">${esc(v.name)} <span class="mu">${v.targets.length} perk${v.targets.length==1?'':'s'}</span><button data-ow="${v.id}" title="Overwrite with your current perks and options">⟳</button><button data-del="${v.id}" title="Delete">×</button></span>`).join(''):'<span class="mu">No saved loadouts yet. Type a name on a build below and press ☆ Save.</span>';
@@ -112,7 +120,7 @@ function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
   if(e.target.dataset.del){saved=saved.filter(x=>x!==v);if(activeId===v.id)activeId=null;persist();tip.style.display='none';drawSaved();return}loadPreset(v)};el.onkeydown=e=>{if(e.key==='Enter')loadPreset(v)}});updateActive()}
 /* Shows which saved loadout is being edited and whether the current perks and options differ from it. */
 const sameState=v=>{const o=v.opts||{},c=curOpts();if(JSON.stringify([...sel].sort())!==JSON.stringify([...v.targets].sort()))return false;
- return ['wt','wn','cv','sg','lg','ex','lt','om','pt'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
+ return ['wt','wn','cv','sg','lg','adv','lt','om','pt'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
 function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=null;
  const dirty=!!v&&!sameState(v);
  document.querySelectorAll('#saved .pre').forEach(el=>{const on=!!v&&el.dataset.pre==v.id;el.classList.toggle('act',on);el.classList.toggle('dirty',on&&dirty)});
@@ -124,7 +132,7 @@ function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=nu
 function bindRes(){document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})}
 let tm;function calc(){updateActive();if(!sel.size){$('res').innerHTML='<div class="empty">👆 Pick one or more perks above to see the best builds.</div>';$('pc').innerHTML='';return}
  $('res').style.opacity=.45;clearTimeout(tm);tm=setTimeout(()=>{lastRun=run();$('res').innerHTML=view(lastRun);$('res').style.opacity=1;$('pc').innerHTML=table();bindRes()},20)}
-function refresh(){draw();calc()}
+function refresh(){draw();renderPins();calc()}
 $('wt').innerHTML=['Any',...WTS].map(t=>`<option>${t}</option>`).join('');
 function fillWn(name){const wt=$('wt').value,v=$('wn').value,cur=name!==undefined?name:(v===''||v==='Any'?'':(D.wp[+v]||[])[0]);
  const ws=D.wp.map((w,i)=>[w,i]).filter(([w])=>(wt==='Any'||w[1]===wt)&&!excl.has(w[8])).sort((a,b)=>a[0][0].localeCompare(b[0][0]));
@@ -132,7 +140,7 @@ function fillWn(name){const wt=$('wt').value,v=$('wn').value,cur=name!==undefine
  const m=ws.find(([w])=>w[0]===cur);$('wn').value=m?m[1]:'Any'}
 fillWn();
 $('q').oninput=draw;$('clr').onclick=()=>{sel.clear();refresh()};
-$('wt').onchange=()=>{fillWn();calc()};['wn','cv','sg','lg','ex','lt','om'].forEach(id=>$(id).onchange=calc);drawSaved();
+$('wt').onchange=()=>{fillWn();calc()};['wn','cv','sg','lg','lt','om'].forEach(id=>$(id).onchange=calc);drawSaved();
 refresh();
 /* ---------- Import / export (codes of this tool only, format in assets/js/buildcode.js) ---------- */
 const ORD=['Weapon','Lantern','Head','Torso','Arms','Legs','Omnicell'];
@@ -154,7 +162,7 @@ function exportBuild(bi){
  const armour={};
  AT.forEach(slot=>{const it=item(slot),rec=D.arm.find(a=>a[0]===it.nm[0]&&a[1]===slot);armour[slot]={key:rec?rec[6]:null,level:lvl};if(it.cells[0])put(slot,it.cells[0][1])});
  const li=item('Lantern');if(li&&li.cells[0])put('lan',li.cells[0][1]);
- const code=BuildCode.encode({weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,ex:$('ex').checked},cells});
+ const code=BuildCode.encode({weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:advState()},cells});
  $('expcode').value=code;$('iedet').open=true;msg.textContent='Code ready. Use Copy code.'}
 $('expcopy').onclick=async()=>{const t=$('expcode').value,m=$('expmsg');if(!t){m.textContent='Press ⇪ Export on a build first.';return}
  try{await navigator.clipboard.writeText(t);m.textContent='Copied.'}catch(e){m.textContent='Select the code and copy it manually.';$('expcode').select()}};
@@ -191,7 +199,7 @@ function importBuild(){
  if(b.targets&&b.targets.length)b.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});
  else I.ps.forEach(([p,t])=>{if(t>=6)sel.set(p,2);else if(t>=3)sel.set(p,1)});
  $('sg').checked=b.weapon[1]===1;
- if('lg' in o)$('lg').checked=!!o.lg;if('ex' in o)$('ex').checked=!!o.ex;
+ if('lg' in o)$('lg').checked=!!o.lg;if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});
  const ranks=Object.values(b.cells).map(c=>c[1]);$('cv').value=String(o.cv||(ranks.length?Math.max(...ranks):3));
  $('wt').value=[...$('wt').options].some(x=>x.value===o.wt)?o.wt:W[1];
  fillWn(o.wt!==undefined?(o.wn||''):W[0]);
@@ -225,9 +233,9 @@ function rowInfo(it){
  if(it.lab==='Omnicell'){const O=omniInfo();return {ic:O&&O.ic,ex:[],desc:O&&O.desc}}
  if(it.lab==='Weapon'){
   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ '),L=D.wp.find(x=>x[0]===l&&x[7]),P=D.wp.find(x=>x[0]===w&&!x[7]);
-   return {parts:partsHtml(weaponTypeOf(nm)),ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
-  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {parts:partsHtml(weaponTypeOf(nm)),ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
- const r=D.arm.find(a=>a[0]===nm&&a[1]===it.lab);return {ic:r&&r[6],ex:r?[{k:r[6],n:r[0],t:"Don't have"}]:[]}}
+   return {parts:partsHtml(weaponTypeOf(nm)),desc:L&&L[9]?L[9]:'',exo:L&&L[6],ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
+  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {parts:partsHtml(weaponTypeOf(nm)),desc:r&&r[9]?r[9]:'',exo:r&&r[6],ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
+ const r=D.arm.find(a=>a[0]===nm&&a[1]===it.lab);return {res:resTags(r),desc:r&&r[11]?r[11]:'',exo:r&&r[5],ic:r&&r[6],ex:r?[{k:r[6],n:r[0],t:"Don't have"}]:[]}}
 function drawExcl(){const el=$('exb');
  el.innerHTML=excl.size?`<div class="exbar"><span class="mu">Marked as missing:</span>${[...excl].map(([k,n])=>`<span class="xchip">${esc(n)}<button data-r="${esc(k)}" title="I have it again">×</button></span>`).join('')}<button class="pick" id="exreset">Reset all</button></div>`:'';
  el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{excl.delete(b.dataset.r);afterExcl()});
@@ -235,6 +243,51 @@ function drawExcl(){const el=$('exb');
 function afterExcl(){saveExcl();drawExcl();fillWn();calc()}
 $('res').addEventListener('click',e=>{const b=e.target.closest('.xbtn');if(!b)return;excl.set(b.dataset.k,b.dataset.n);afterExcl()});
 drawExcl();
+
+/* ---------- Advanced filters: exotic mode, pinned pieces, resistances; resistance and crafting displays ---------- */
+function exMode(){return $('exm').value}
+function resCfg(){const E=[],req=[];EL.forEach((el,i)=>{const v=$('res-'+el).value;if(v!==''){E.push(i);req.push(+v)}});return {E,req}}
+const resValue=a=>($('sg').checked&&a[10]!=null)?a[10]:(a[9]||0);
+function resVec(a){const {E}=resCfg();if(!E.length)return [];const v=resValue(a);return E.map(e=>a[7]===EL[e]?v:a[8]===EL[e]?-v:0)}
+function resTags(a){if(!a||!a[7])return '';const v=resValue(a);return `<span class="tag res" title="Resistance: strength ${a[7]}, weakness ${a[8]}">${img('elements/'+a[7],'xs')}<span class="ok">+${v}%</span>${img('elements/'+a[8],'xs')}<span class="bad">−${v}%</span></span>`}
+function resHtml(items){const t=EL.map(()=>0);let any=false;
+ items.forEach(it=>{if(!AT.includes(it.lab))return;const a=D.arm.find(x=>x[0]===it.nm[0]&&x[1]===it.lab);if(!a||!a[7])return;any=true;const v=resValue(a);t[EL.indexOf(a[7])]+=v;t[EL.indexOf(a[8])]-=v});
+ if(!any)return '';const cfg=resCfg();
+ return '<div class="rtot"><span class="mu">Resistance</span>'+EL.map((el,i)=>{const need=cfg.E.includes(i)?cfg.req[cfg.E.indexOf(i)]:null,bad=need!==null&&t[i]<need;return `<span class="r ${t[i]>0?'pos':t[i]<0?'neg':''}" title="${el}${need!==null?' (needs ≥ '+need+'%)':''}">${img('elements/'+el,'xs')}${t[i]>0?'+':t[i]<0?'−':''}${Math.abs(t[i])}%${bad?' ⚠':''}</span>`}).join('')+'</div>'}
+function wikiUrl(n){return 'https://dauntless.fandom.com/wiki/'+encodeURIComponent(n.replace(/ /g,'_'))}
+function craftHtml(items){const recs=[];
+ items.forEach(it=>{if(it.lab==='Weapon'){const nm=it.nm[0];
+   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ ');[D.wp.find(x=>x[0]===l&&x[7]),D.wp.find(x=>x[0]===w&&!x[7])].forEach(r=>r&&recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:r[7]?'Legendary weapon':'Bond weapon'}))}
+   else{const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);if(r)recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:'Weapon'})}}
+  else if(AT.includes(it.lab)){const r=D.arm.find(x=>x[0]===it.nm[0]&&x[1]===it.lab);if(r)recs.push({n:r[0],k:r[6],b:r[2],x:r[5],t:it.lab})}});
+ if(!recs.length)return '';
+ const by={};recs.forEach(r=>{if(r.b)by[r.b]=(by[r.b]||0)+1});
+ return `<details class="craft"><summary>Crafting list (${recs.length} pieces)</summary><div class="cl">${Object.keys(by).length?`<div class="cs">Hunt: ${Object.entries(by).map(([b,n])=>`<b>${esc(b)}</b> ×${n}`).join(' · ')}</div>`:''}`+
+  recs.map(r=>`<div class="cr">${img(r.k,'')}<span><b>${esc(r.n)}</b>${r.x?' <span class="exo">★ Exotic</span>':''}<br><span class="mu">${r.t} · ${r.b?esc(r.b):'starter or special gear'}</span></span><a href="${wikiUrl(r.n)}" target="_blank" rel="noopener">Wiki ↗</a></div>`).join('')+
+  '<p class="mu" style="margin:8px 0 0">Craft every piece and upgrade it fully (power surged) to reach the values shown. The material amounts are on the wiki page of each piece.</p></div></details>'}
+function advState(){const res={};EL.forEach(el=>{const v=$('res-'+el).value;if(v!=='')res[el]=v});return {exm:exMode(),pins:{...pins},res}}
+function applyAdv(a){if(typeof a==='string'){try{a=JSON.parse(a)}catch(e){return}}if(!a||typeof a!=='object')return;
+ if(a.exm&&['exclude','allow','only'].includes(a.exm))$('exm').value=a.exm;
+ pins={};Object.entries(a.pins||{}).forEach(([slot,k])=>{if(AT.includes(slot)&&byKeyA.has(k))pins[slot]=k});
+ EL.forEach(el=>{const v=(a.res||{})[el];$('res-'+el).value=[...$('res-'+el).options].some(o=>o.value===String(v))?String(v):''});
+ renderPins();updateAdvDot()}
+function updateAdvDot(){$('advdot').hidden=!(exMode()!=='exclude'||Object.keys(pins).length||EL.some(el=>$('res-'+el).value!==''))}
+function advChanged(){updateAdvDot();renderPins();calc();updateActive()}
+function renderPins(){const chips=Object.entries(pins).map(([slot,k])=>{const a=byKeyA.get(k);return `<span class="xchip">📌 ${slot}: ${esc(a?a[0]:k)}<button data-pin="${slot}" title="Remove pin">×</button></span>`});
+ const wv=$('wn').value;if(wv&&wv!=='Any'&&D.wp[+wv])chips.push(`<span class="xchip">📌 Weapon: ${esc(D.wp[+wv][0])}<button data-pin="Weapon" title="Remove pin">×</button></span>`);
+ $('pins').innerHTML=chips.join('');
+ $('pins').querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{if(b.dataset.pin==='Weapon'){$('wn').value='Any'}else delete pins[b.dataset.pin];advChanged()});updateAdvDot()}
+function searchPieces(q){q=q.toLowerCase().trim();if(q.length<2)return [];const out=[];
+ D.arm.forEach(a=>{if((a[0]+' '+a[2]+' '+a[1]+' '+a[4].map(x=>x[0]).join(' ')).toLowerCase().includes(q))out.push({kind:'arm',k:a[6],n:a[0],t:a[1],b:a[2],x:a[5],p:a[4].map(x=>x[0]),rec:a})});
+ D.wp.forEach(w=>{if((w[0]+' '+w[2]+' '+w[1]+' '+w[5].map(x=>x[0]).join(' ')).toLowerCase().includes(q))out.push({kind:'wp',k:w[8],n:w[0],t:w[1],b:w[2],x:w[6],p:w[5].map(x=>x[0]),rec:w})});
+ return out.sort((a,b)=>(b.x-a.x)||a.n.localeCompare(b.n)).slice(0,8)}
+function showPieceResults(){const r=searchPieces($('pq').value);
+ $('pres').innerHTML=r.map((x,i)=>`<button class="pit" data-i="${i}">${img(x.k,'')}<span class="pn2"><b>${esc(x.n)}</b>${x.x?' <span class="exo">★ Exotic</span>':''}<small>${x.t}${x.b?' · '+esc(x.b):''}${x.p.length?' · '+esc(x.p.join(', ')):''}</small></span></button>`).join('')||($('pq').value.trim().length>=2?'<span class="mu">Nothing found.</span>':'');
+ $('pres').querySelectorAll('.pit').forEach(b=>b.onclick=()=>{const x=r[+b.dataset.i];
+  if(x.kind==='arm')pins[x.t]=x.k;else{$('wt').value=x.t;fillWn(x.n)}
+  $('pq').value='';$('pres').innerHTML='';advChanged()})}
+
+updateAdvDot();
 
 /* Fullscreen toggle (hidden where the browser does not allow it) */
 (()=>{const b=$('fs');if(!b)return;if(!document.fullscreenEnabled){b.hidden=true;return}

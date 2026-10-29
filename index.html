@@ -22,9 +22,14 @@
 <label class="sw">Cells <select id="cv"><option value="3">+3 epic</option><option value="2">+2 rare</option><option value="1">+1 uncommon</option></select></label>
 <label class="sw"><input type="checkbox" id="sg" checked> Power surged gear</label>
 <label class="sw"><input type="checkbox" id="lg" checked> Legendary bonds</label>
-<label class="sw"><input type="checkbox" id="ex"> Exotics</label>
 <label class="sw">Lantern <select id="lt"><option value="Any">Any (Insight slot)</option></select></label>
 <label class="sw">Omnicell <select id="om"><option value="">None</option></select></label></div></div>
+<details id="adv" class="card advcard"><summary>Advanced filters <span class="advdot" id="advdot" hidden>● active</span></summary>
+<p class="mu" style="margin:6px 0 0">Optional, for min-maxing. Leave them as they are for normal use.</p>
+<div class="advsec"><h3>Exotic pieces</h3><select id="exm"><option value="exclude">Don’t use exotics</option><option value="allow">Allow exotics</option><option value="only">Require at least one exotic</option></select></div>
+<div class="advsec"><h3>Find and pin a piece</h3><input type="search" id="pq" placeholder="Search armor and weapons, e.g. Skullforge…" autocomplete="off"><div id="pres"></div><div id="pins"></div></div>
+<div class="advsec"><h3>Resistances</h3><p class="mu" style="margin:0 0 8px">Minimum total of your four armor pieces. A piece adds its resistance to its strength element and subtracts it from its weakness element.</p><div id="resg" class="resg"></div></div>
+</details>
 </aside><div class="content">
 <div class="bar" id="bar"></div>
 <div class="card"><div class="ch"><span class="num">3</span><h2>Best builds</h2></div><div id="impview"></div><div id="exb"></div><div id="res"></div></div>

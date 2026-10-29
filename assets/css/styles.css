@@ -108,3 +108,21 @@ details.card{display:block}
 .pr .ci{color:var(--c)}
 
 #perks{display:block!important}
+
+/* advanced filters */
+details.advcard summary{cursor:pointer;font-weight:700;list-style:none}details.advcard summary::-webkit-details-marker{display:none}details.advcard summary::after{content:'▾';float:right;color:var(--mu)}details.advcard[open] summary::after{content:'▴'}
+.advdot{font-size:11px;font-weight:700;color:var(--ac);margin-left:8px}
+.advsec{margin-top:14px}.advsec h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu)}
+.advsec select,.advsec input[type=search]{width:100%}
+.resg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.resc{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:10px;padding:8px 6px;background:var(--sf2);font-size:12px}
+.resc .gi{width:28px;height:28px}.resc select{font-size:12px;padding:3px 4px}
+#pres{margin-top:6px;display:grid;gap:4px}.pit{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--bd);border-radius:10px;background:var(--sf2);color:var(--tx);padding:4px 8px;cursor:pointer;font:inherit;font-size:13px}
+.pit:hover{border-color:var(--ac)}.pit .gi{width:32px;height:32px}.pit .pn2{flex:1;min-width:0}.pit small{display:block;color:var(--mu);font-size:11px}
+#pins{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.exo{margin-left:8px;font-size:12px;font-weight:700;color:var(--Insight)}
+.tag .gi.xs{width:16px;height:16px;margin:0 3px 0 0;border:0;background:none;vertical-align:-3px}.tag.res{gap:2px}
+.rtot{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 14px;border-top:1px solid var(--bd);background:var(--sf);font-size:13px}
+.rtot span.r{display:inline-flex;align-items:center;gap:2px}.rtot .gi{width:18px;height:18px;border:0;background:none;margin:0}.rtot .pos{color:var(--ok)}.rtot .neg{color:var(--bad)}
+details.craft{border-top:1px solid var(--bd);background:var(--sf)}details.craft summary{cursor:pointer;padding:8px 14px;color:var(--mu);font-size:13px}
+.cl{padding:0 14px 12px}.cl .cs{margin-bottom:6px;font-size:13px}.cr{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}.cr .gi{width:30px;height:30px}.cr a{margin-left:auto;color:var(--ac);text-decoration:none;white-space:nowrap}
