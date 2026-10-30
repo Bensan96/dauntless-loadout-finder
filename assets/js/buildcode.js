@@ -1,4 +1,4 @@
-/* Build codes of this tool: "DLF1." + base64url(JSON). Only this tool reads and writes them.
+/* Build codes of this tool: DLF1 base64url(JSON), plus compressed DLF2 share codes.
  *
  * The JSON holds stable item keys (the data file paths used in data/game-data.json) and the cells by perk name:
  *   { v:1, weapon:[key, level], bond:key|null, armour:{Head:[key, level], ...}, lantern:key|null, omnicell:key|null,
@@ -7,6 +7,7 @@
  */
 (function () {
   const PREFIX = 'DLF1.';
+  const COMPACT_PREFIX = 'DLF2.';
   const ARMOUR = ['Head', 'Torso', 'Arms', 'Legs'];
   const SOCKETS = ['w0', 'w1', ...ARMOUR, 'lan'];
 
@@ -25,23 +26,19 @@
     }
   };
 
-  function encode(build) {
+  function payload(build) {
     const armour = {};
     for (const slot of ARMOUR) {
       const a = build.armour[slot];
-      armour[slot] = [a ? a.key : null, a ? a.level : 1];
+      armour[slot] = Array.isArray(a) ? a : [a ? a.key : null, a ? a.level : 1];
     }
-    return PREFIX + toCode({
-      v: 1, weapon: [build.weapon.key, build.weapon.level], bond: build.bond || null, armour,
+    return {
+      v: 1, weapon: Array.isArray(build.weapon) ? build.weapon : [build.weapon.key, build.weapon.level], bond: build.bond || null, armour,
       lantern: build.lantern || null, omnicell: build.omnicell || null, parts: build.parts || {}, targets: build.targets || [], opts: build.opts || {}, cells: build.cells || {},
-    });
+    };
   }
 
-  function decode(input) {
-    if (typeof input !== 'string' || !input.trim()) throw new Error('Paste a build code first.');
-    const code = input.replace(/\s+/g, '');
-    if (!code.startsWith(PREFIX)) throw new Error('This is not a code from this tool. It should start with ' + PREFIX);
-    const v = fromCode(code.slice(PREFIX.length));
+  function validate(v) {
     if (!v || v.v !== 1 || !Array.isArray(v.weapon) || !v.armour) throw new Error('This build code is not valid.');
     for (const slot of Object.keys(v.cells || {})) {
       const c = v.cells[slot];
@@ -52,5 +49,44 @@
       opts: v.opts && typeof v.opts === 'object' ? v.opts : {}, cells: v.cells || {} };
   }
 
-  window.BuildCode = { encode, decode, SOCKETS, ARMOUR };
+  function codeInput(input, prefix) {
+    if (typeof input !== 'string' || !input.trim()) throw new Error('Paste a build code first.');
+    const code = input.replace(/\s+/g, '');
+    if (!code.startsWith(prefix)) throw new Error('This is not a code from this tool. It should start with ' + prefix);
+    return code.slice(prefix.length);
+  }
+
+  function encode(build) {
+    return PREFIX + toCode(payload(build));
+  }
+
+  async function encodeCompact(build) {
+    if (typeof CompressionStream === 'undefined') throw new Error('Compressed sharing is not supported in this browser.');
+    const bytes = new TextEncoder().encode(JSON.stringify(payload(build)));
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    const compressed = new Uint8Array(await new Response(stream).arrayBuffer());
+    let bin = '';
+    for (const b of compressed) bin += String.fromCharCode(b);
+    return COMPACT_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function decode(input) {
+    return validate(fromCode(codeInput(input, PREFIX)));
+  }
+
+  async function decodeCompact(input) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('Compressed sharing is not supported in this browser.');
+    const encoded = codeInput(input, COMPACT_PREFIX);
+    let value;
+    try {
+      const bytes = Uint8Array.from(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+      value = JSON.parse(await new Response(stream).text());
+    } catch {
+      throw new Error('The compressed build code could not be read.');
+    }
+    return validate(value);
+  }
+
+  window.BuildCode = { encode, decode, encodeCompact, decodeCompact, SOCKETS, ARMOUR };
 })();

@@ -10,6 +10,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 let pins={}; /* pinned armor pieces by slot (key), set in the advanced filters */
 let excl=new Map();try{excl=new Map(Object.entries(JSON.parse(localStorage.getItem('dlb_excl')||'{}')))}catch(e){}
 const saveExcl=()=>{try{localStorage.setItem('dlb_excl',JSON.stringify(Object.fromEntries(excl)))}catch(e){}};
+function applyExclusions(items){excl=new Map(Object.entries(items||{}).filter(([key,name])=>typeof key==='string'&&typeof name==='string'));saveExcl();drawExcl()}
 const icon=k=>(window.__ICONS__&&window.__ICONS__[k])||'';
 const img=(k,cls)=>`<img class="gi ${cls||''}" src="${icon(k)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const EL=['Blaze','Frost','Radiant','Shock','Terra','Umbral'];
@@ -106,10 +107,10 @@ let svT;function svmsg(t){const e=$('svmsg');e.textContent=t;clearTimeout(svT);s
 /* Saving under a name that already exists overwrites that loadout (it keeps its place in the list). */
 function save(bi){const s=snaps[bi];if(!s)return;
  const typed=((document.getElementById('nm'+bi)||{}).value||'').trim(),name=typed||('Loadout '+(saved.length+1)+': '+[...sel.keys()].slice(0,3).join(', '));
- const data={targets:[...sel],opts:curOpts(),items:s.items,tot:s.tot},k=typed?saved.findIndex(v=>v.name.toLowerCase()===typed.toLowerCase()):-1;
+ const data={targets:[...sel],opts:curOpts(),items:s.items,tot:s.tot,excluded:Object.fromEntries(excl)},k=typed?saved.findIndex(v=>v.name.toLowerCase()===typed.toLowerCase()):-1;
  if(k>=0){Object.assign(saved[k],data);activeId=saved[k].id;selectedSavedId=String(saved[k].id);svmsg(`“${saved[k].name}” was overwritten.`)}else{const id=Date.now();saved.unshift({id,name,...data});activeId=id;selectedSavedId=String(id)}
  persist();drawSaved();const b=document.querySelector(`.sv[data-bi="${bi}"]`);if(b)b.textContent=k>=0?'✓ Overwritten':'✓ Saved'}
-function loadPreset(v){selectedSavedId=String(v.id);if(v.buildCode){activeId=null;importBuild(v.buildCode);return}activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
+function loadPreset(v){selectedSavedId=String(v.id);applyExclusions(v.excluded);if(v.buildCode){activeId=null;importBuild(v.buildCode);return}activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
 function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
  const select=$('savedselect'),current=saved.find(v=>String(v.id)===selectedSavedId)||saved.find(v=>v.id===activeId);
  selectedSavedId=current?String(current.id):(saved[0]?String(saved[0].id):'');
@@ -125,17 +126,18 @@ $('savedoverwrite').onclick=()=>{const v=saved.find(x=>String(x.id)===selectedSa
  button.dataset.armed='';button.textContent='Overwrite';
  if(!sel.size){svmsg('Pick some perks first, then overwrite.');return}
  if(v.buildCode){svmsg('Imported builds are saved as exact builds. Save this build with a new name instead.');return}
- Object.assign(v,{targets:[...sel],opts:curOpts()});activeId=v.id;persist();drawSaved();svmsg(`“${v.name}” was updated with your current perks and options.`)};
+ Object.assign(v,{targets:[...sel],opts:curOpts(),excluded:Object.fromEntries(excl)});activeId=v.id;persist();drawSaved();svmsg(`“${v.name}” was updated with your current perks and options.`)};
 $('saveddelete').onclick=()=>{const v=saved.find(x=>String(x.id)===selectedSavedId);if(!v)return;saved=saved.filter(x=>x!==v);if(activeId===v.id)activeId=null;selectedSavedId='';persist();tip.style.display='none';drawSaved();svmsg(`“${v.name}” was deleted.`)};
 /* Shows which saved loadout is being edited and whether the current perks and options differ from it. */
 const sameState=v=>{const o=v.opts||{},c=curOpts();if(JSON.stringify([...sel].sort())!==JSON.stringify([...v.targets].sort()))return false;
+ if(JSON.stringify([...excl].sort())!==JSON.stringify(Object.entries(v.excluded||{}).sort()))return false;
  return ['wt','wn','cv','sg','lg','adv','lt','om','pt'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
 function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=null;
  const dirty=!!v&&!sameState(v);
  const box=$('actbox');if(!box)return;
  if(!v){box.innerHTML='';return}
  box.innerHTML=`<span class="actb">Editing: <b>${esc(v.name)}</b></span>`+(dirty?'<span class="warn">● unsaved changes</span><button class="pick" id="actsave">Save changes</button><button class="pick" id="actrev">Discard</button>':'<span class="good">✓ saved</span>')+'<button class="pick" id="actoff" title="Stop editing this loadout">Stop editing</button><span class="sep"></span>';
- if(dirty){$('actsave').onclick=()=>{Object.assign(v,{targets:[...sel],opts:curOpts()});persist();drawSaved();svmsg(`“${v.name}” was updated.`)};$('actrev').onclick=()=>loadPreset(v)}
+ if(dirty){$('actsave').onclick=()=>{Object.assign(v,{targets:[...sel],opts:curOpts(),excluded:Object.fromEntries(excl)});persist();drawSaved();svmsg(`“${v.name}” was updated.`)};$('actrev').onclick=()=>loadPreset(v)}
  $('actoff').onclick=()=>{activeId=null;updateActive()}}
 function bindRes(){document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.sh').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi,true));document.querySelectorAll('.build-toggle').forEach(b=>b.onclick=()=>{const card=b.closest('.build'),collapsed=card.classList.toggle('collapsed');b.setAttribute('aria-expanded',String(!collapsed));b.setAttribute('aria-label',`${collapsed?'Expand':'Collapse'} ${card.querySelector('.rank').textContent} build`);b.textContent=`${collapsed?'▸':'▾'} Details`});document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})}
 let tm;function calc(){updateActive();if(!sel.size){$('res').innerHTML='<div class="empty">👆 Pick one or more perks above to see the best builds.</div>';$('pc').innerHTML='';return}
@@ -220,7 +222,7 @@ async function saveImported(){
  try{
   const buildCode=await BuildCode.encodeCompact(impB);
   const name=typed||`Imported loadout ${saved.length+1}`;
-  const data={targets:[...sel],opts:curOpts(),buildCode},existing=typed?saved.find(v=>v.name.toLowerCase()===typed.toLowerCase()):null;
+  const data={targets:[...sel],opts:curOpts(),buildCode,excluded:Object.fromEntries(excl)},existing=typed?saved.find(v=>v.name.toLowerCase()===typed.toLowerCase()):null;
   if(existing){Object.assign(existing,data);activeId=existing.id;svmsg(`“${existing.name}” was overwritten.`)}
   else{const id=Date.now();saved.unshift({id,name,...data});activeId=id;svmsg(`“${name}” was saved.`)}
   selectedSavedId=String(existing?existing.id:saved[0].id);persist();drawSaved();button.textContent=existing?'✓ Overwritten':'✓ Saved';
