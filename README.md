@@ -1,8 +1,9 @@
 # Dauntless Loadout Finder
 
-A tool that finds the weapon, armor and cell combination for the perk totals you want in
+A static website that finds the weapon, armor and cell combination for the perk totals you want in
 Dauntless (game version 1.14.x). Pick perks at +3 or +6, and the tool searches every weapon, armor
-piece and the lantern slot and shows which cell goes where. Saved loadouts are stored in your browser.
+piece and the lantern slot and shows which cell goes where. Saved loadouts are stored in your browser
+and selected from the Saved loadouts dropdown.
 
 ## Project structure
 
@@ -18,7 +19,8 @@ piece and the lantern slot and shows which cell goes where. Saved loadouts are s
 │   ├── game-data.js            generated game data as a script (what the page loads)
 │   └── game-data.json          the same data as plain JSON, for other tools
 ├── scripts/
-│   └── build_data.py           builds data/game-data.json from the upstream data
+│   ├── build_data.py           builds data/game-data.json from the upstream data
+│   └── build_materials.js      refreshes crafting data from the wiki
 ├── .github/workflows/
 │   ├── deploy.yml              publishes the site to GitHub Pages on every push to main
 │   └── update-data.yml         manual workflow: refreshes game-data.json from upstream
@@ -46,13 +48,38 @@ python3 scripts/build_data.py
 This rewrites `data/game-data.js` and `data/game-data.json`. You can also run the **Update game data** workflow from the Actions tab.
 The format of the generated file is described at the top of `scripts/build_data.py` and in the comments of its output section.
 
+## Publish on GitHub Pages
+
+1. Create a repository and push this folder to the `main` branch.
+2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main` (or run the *Deploy to GitHub Pages* workflow). The site appears at the URL shown in the workflow run.
+
 ## Import and export
 
-Open **Import / export a build code** at the bottom of the page. Press **⇪ Export** on a build to get a `DLF1.…` code. The
-code holds the whole build and the whole tool state: weapon (and bond), every armor piece, each cell in its slot with its
-strength, lantern, omnicell, weapon parts, power surged, your perk targets and the options (weapon type, weapon, cell
-strength, legendary bonds, exotics). **Import** restores all of it, pins the exact build above the search results and runs
-the search again. The codes only work in this tool, see `assets/js/buildcode.js`.
+Use **↗ Share** on a build to copy a link that opens that exact build, or **⇪ Export** to get a compact `DLF3.…` code.
+Both preserve the weapon and bond, armor, cells, lantern, omnicell, weapon parts, perk targets, and relevant options.
+Paste a code under **Import / export a build code** to restore it. Existing `DLF1.…` and `DLF2.…` codes remain supported.
+Share links store the compressed code in the URL fragment, so the build is not sent to a server. They require the site
+to be hosted at a URL other people can access. See `assets/js/buildcode.js`.
+Imported builds can be named and saved from their build card; selecting the saved loadout restores that exact gear and cells.
+Each saved loadout also remembers its own "Don't have" gear selections. Older saved loadouts without this data load with no exclusions.
+
+## Advanced filters
+
+A collapsed panel under the options, only needed for min-maxing:
+
+- **Exotic pieces:** don't use exotics (default), allow them, or require at least one exotic piece in the build.
+- **Escalation gear:** allow it (default), don't use it, or require at least one piece. Escalation gear is everything from the six
+  keystone Behemoths (Malkarion, Torgadoro, Thrax, Agarus, Urska, Chronovore), including all legendary (bond) weapons.
+- **Find and pin a piece:** search all armor and weapons (by name, set, slot or perk) and pin one. A pinned armor piece is fixed
+  in its slot, a pinned weapon becomes the weapon of every build. Pinned exotics work even when exotics are off.
+- **Resistances:** a minimum for each element (no weakness, or 30 to 120 %), summed over the four armor pieces. A piece adds
+  its resistance to its strength element and subtracts it from its weakness element (power surged values when that switch is on).
+
+Every build shows its resistance totals. The Materials tab is temporarily hidden because its recipe information is not kept
+up to date. Its rendering code and an empty `data/materials.js` are retained as a scaffold for future use; no materials are
+currently shown or need to be maintained. The filters are stored in saved loadouts and build codes.
+Search results show the top three builds. The first is expanded and the other two are collapsed; use **Details** on a result to expand or collapse it.
 
 ## Lantern and omnicell
 

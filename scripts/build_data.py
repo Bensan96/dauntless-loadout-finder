@@ -57,6 +57,9 @@ def plain(text, values):
     text = re.sub(r'<[^>]+>', '', text)
     return '\n'.join(' '.join(line.split()) for line in text.split('\n') if line.strip())
 
+# Keystone Behemoths of the six Escalations. Their parts craft the legendary (bonded) weapons and their own armor.
+ESCALATION = {'Torgadoro': 'Blaze', 'Malkarion': 'Shock', 'Thrax': 'Umbral', 'Agarus': 'Terra', 'Urska': 'Frost', 'Chronovore': 'Radiant'}
+
 def fx_text(d):
     """Unique effect text, only for exotic items."""
     if d.get('rarity') != 'exotic':
@@ -67,10 +70,10 @@ perks = {d['name']: [d['type'], ' '.join((d.get('description') or '').split()), 
          for d in load('perks/*.yml')}
 armour = [[d['name'], d['type'], d.get('behemoth') or '', d.get('cells') or '', perk_list(d),
            1 if d.get('rarity') == 'exotic' else 0, d['_key'], d.get('strength') or '', d.get('weakness') or '',
-           (d.get('resistance') or {}).get('base', 0), (d.get('resistance') or {}).get('powerSurged'), fx_text(d)] for d in load('armours/*/*.yml')]
+           (d.get('resistance') or {}).get('base', 0), (d.get('resistance') or {}).get('powerSurged'), fx_text(d), ESCALATION.get(d.get('behemoth'), '')] for d in load('armours/*/*.yml')]
 weapons = [[d['name'], d['type'], d.get('behemoth') or '', d.get('elemental') or '', d.get('cells') or [], perk_list(d),
             1 if d.get('rarity') == 'exotic' else 0,
-            (d.get('bond') or {}).get('elemental', '') if d.get('bond') else '', d['_key'], fx_text(d)] for d in load('weapons/*/*.yml')]
+            (d.get('bond') or {}).get('elemental', '') if d.get('bond') else '', d['_key'], fx_text(d), ESCALATION.get(d.get('behemoth'), '')] for d in load('weapons/*/*.yml')]
 
 def lantern_text(d):
     a = d.get('lantern_ability') or {}
@@ -101,6 +104,9 @@ for d in load('parts/*/*/*.yml'):
     parts.setdefault(PART_DIRS[wdir], {}).setdefault(PART_KINDS[kdir], []).append(
         [d['name'], d['_key'], effect, 1 if 'Recommended' in (d.get('tags') or []) else 0])
 
+bond_behemoths = {w[2] for w in weapons if w[7]}
+assert bond_behemoths == set(ESCALATION), ('Escalation Behemoths differ from the legendary weapon Behemoths', bond_behemoths)
+
 misc = yaml.safe_load(open(R + 'misc.yml', encoding='utf-8')) or {}
 commit = ''
 try:
@@ -114,9 +120,9 @@ out = {
     # perks: {name: [family, description, {"3": [...], "6": [...]}]}
     'perks': perks,
     # arm: [name, slot (Head/Torso/Arms/Legs), behemoth, cellFamily, [[perk, baseValue]], isExotic, key,
-    #       strengthElement, weaknessElement, resistanceBase, resistancePowerSurged, exoticEffectText]
+    #       strengthElement, weaknessElement, resistanceBase, resistancePowerSurged, exoticEffectText, escalationElement ("" if not Escalation gear)]
     'arm': armour,
-    # wp: [name, type, behemoth, element, [cellFamilies], [[perk, baseValue]], isExotic, bondElement ("" if not legendary), key, exoticEffectText]
+    # wp: [name, type, behemoth, element, [cellFamilies], [[perk, baseValue]], isExotic, bondElement ("" if not legendary), key, exoticEffectText, escalationElement]
     'wp': weapons,
     # lan: [[lanternName, cellFamily, key, abilityText]]; cellKeys: {perkName: cellKey}. Keys are the data file paths
     # (e.g. "weapons/agarus/AgentsOfDecay"), which the build codes (DLF1.…) of the tool use.

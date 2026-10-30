@@ -230,7 +230,7 @@ async function saveImported(){
 }
 async function importBuild(input,fromLink=false){
  const msg=$('impmsg');msg.className='mu';
- let b;try{const code=input===undefined?$('impin').value:input;b=code.replace(/\s+/g,'').startsWith('DLF2.')?await BuildCode.decodeCompact(code):BuildCode.decode(code)}catch(e){msg.textContent=e.message;msg.className='warn';return}
+ let b;try{const code=input===undefined?$('impin').value:input;b=/^DLF[23]\./.test(code.replace(/\s+/g,''))?await BuildCode.decodeCompact(code):BuildCode.decode(code)}catch(e){msg.textContent=e.message;msg.className='warn';return}
  const I=impInfo(b);if(!I){msg.textContent='Unknown weapon in this code.';msg.className='warn';return}
  const o=b.opts||{},W=I.W;impB=b;
  sel.clear();

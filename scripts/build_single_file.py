@@ -11,7 +11,7 @@ html = rd('index.html')
 html = html.replace('<link rel="stylesheet" href="assets/css/styles.css">', '<style>\n' + rd('assets/css/styles.css') + '</style>')
 data = rd('data/game-data.json').replace('</', '<\\/')
 script = '<script>window.__GAME_DATA__=' + data + ';</script>\n<script>\n' + rd('assets/js/app.js').replace('</script', '<\\/script') + '</script>'
-html = html.replace('<script src="data/game-data.js"></script>\n', '').replace('<script src="assets/js/buildcode.js"></script>\n', '<script>\n' + rd('assets/js/buildcode.js') + '</script>\n').replace('<script src="assets/js/icons.js"></script>\n', '<script>\n' + rd('assets/js/icons.js') + '</script>\n').replace('<script src="assets/js/app.js" defer></script>', script)
+html = html.replace('<script src="data/game-data.js"></script>\n', '').replace('<script src="assets/js/buildcode.js"></script>\n', '<script>\n' + rd('assets/js/buildcode.js') + '</script>\n').replace('<script src="data/materials.js"></script>\n', '<script>\n' + rd('data/materials.js') + '</script>\n').replace('<script src="assets/js/icons.js"></script>\n', '<script>\n' + rd('assets/js/icons.js') + '</script>\n').replace('<script src="assets/js/app.js" defer></script>', script)
 os.makedirs(os.path.join(root, 'dist'), exist_ok=True)
 out = os.path.join(root, 'dist', 'dauntless-loadout-finder.html')
 open(out, 'w', encoding='utf-8').write(html)
