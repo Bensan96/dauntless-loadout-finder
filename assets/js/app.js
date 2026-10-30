@@ -174,7 +174,7 @@ async function exportBuild(bi,copyLink=false){
  const li=item('Lantern');if(li&&li.cells[0])put('lan',li.cells[0][1]);
  const data={weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:advState()},cells};
  try{
-  const code=await BuildCode.encodeCompact(data),url=location.href.split('#')[0]+'#build='+code;
+  const code=await BuildCode.encodeCompact(data),url=location.href.split('#')[0]+'#'+code.slice('DLF3.'.length);
   $('expcode').value=code;$('sharelink').value=url;$('iedet').open=true;
   if(copyLink){
    history.replaceState(null,'',url);
@@ -338,6 +338,7 @@ updateAdvDot();
 (()=>{const b=$('fs');if(!b)return;if(!document.fullscreenEnabled){b.hidden=true;return}
  b.onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}};
  document.addEventListener('fullscreenchange',()=>b.textContent=document.fullscreenElement?'⛶ Exit fullscreen':'⛶ Fullscreen')})();
-const sharedCode=new URLSearchParams(location.hash.slice(1)).get('build');
+const rawHash=location.hash.slice(1);
+const sharedCode=rawHash.startsWith('build=')?new URLSearchParams(rawHash).get('build'):rawHash.startsWith('DLF')?rawHash:rawHash?`DLF3.${rawHash}`:null;
 if(sharedCode){$('impin').value=sharedCode;importBuild(sharedCode,true)}
 })().catch(err => { document.body.insertAdjacentHTML('afterbegin', '<p style="padding:16px;color:#b3261e">Could not start: ' + err.message + '. If you opened the file directly, serve it with a local web server instead (python3 -m http.server).</p>'); });

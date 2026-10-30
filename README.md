@@ -59,8 +59,9 @@ The format of the generated file is described at the top of `scripts/build_data.
 Use **↗ Share** on a build to copy a link that opens that exact build, or **⇪ Export** to get a compact `DLF3.…` code.
 Both preserve the weapon and bond, armor, cells, lantern, omnicell, weapon parts, perk targets, and relevant options.
 Paste a code under **Import / export a build code** to restore it. Existing `DLF1.…` and `DLF2.…` codes remain supported.
-Share links store the compressed code in the URL fragment, so the build is not sent to a server. They require the site
-to be hosted at a URL other people can access. See `assets/js/buildcode.js`.
+Share links store the compressed code in the URL fragment, omitting the code and parameter prefixes to reduce link length.
+The build is not sent to a server, and older `#build=DLF3.…` links continue to work. Links require the site to be hosted
+at a URL other people can access. See `assets/js/buildcode.js`.
 Imported builds can be named and saved from their build card; selecting the saved loadout restores that exact gear and cells.
 Each saved loadout also remembers its own "Don't have" gear selections. Older saved loadouts without this data load with no exclusions.
 
