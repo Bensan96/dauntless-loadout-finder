@@ -14,7 +14,7 @@ const icon=k=>(window.__ICONS__&&window.__ICONS__[k])||'';
 const img=(k,cls)=>`<img class="gi ${cls||''}" src="${icon(k)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const EL=['Blaze','Frost','Radiant','Shock','Terra','Umbral'];
 $('resg').innerHTML=EL.map(el=>`<label class="resc">${img('elements/'+el,'')}<span>${el}</span><select id="res-${el}"><option value="">Any</option><option value="0">No weakness (≥ 0%)</option><option value="30">≥ 30%</option><option value="60">≥ 60%</option><option value="90">≥ 90%</option><option value="120">≥ 120%</option></select></label>`).join('');
-EL.forEach(el=>$('res-'+el).onchange=advChanged);$('exm').onchange=advChanged;$('pq').oninput=showPieceResults;
+EL.forEach(el=>$('res-'+el).onchange=advChanged);$('exm').onchange=advChanged;$('esm').onchange=advChanged;$('pq').oninput=showPieceResults;
 $('wn').addEventListener('change',()=>{renderPins()});
 const val=b=>$('sg').checked?3:b,cv=()=>+$('cv').value;
 const col=t=>`<span style="color:var(--${t})">${cic(t)}</span>`;
@@ -23,20 +23,20 @@ function cic(fam){return `<span class="ci" style="--m:url('${icon('cells/'+fam)}
 const slot=t=>`<span class="sl" style="background:var(--${t})">${t}</span>`;
 const short=n=>n.slice(0,3).join(' / ')+(n.length>3?` +${n.length-3} more`:'');
 
-function covers(Y,X){ if(Y.x<X.x||Y.c.some((v,i)=>v<X.c[i])||Y.r.some((v,i)=>v<X.r[i]))return false;
+function covers(Y,X){ if(Y.x<X.x||Y.e<X.e||Y.c.some((v,i)=>v<X.c[i])||Y.r.some((v,i)=>v<X.r[i]))return false;
  const free=[...Y.cells];for(const s of [...X.cells].sort((a,b)=>b-a)){const j=free.findIndex(y=>y===s||(y===5&&s!==5)); if(j<0)return false;free.splice(j,1)}return true}
-function mkClasses(items,idx,k,only){const m=new Map();
+function mkClasses(items,idx,k,only,onlyE){const m=new Map();
  items.forEach(it=>{const c=new Array(k).fill(0);it.p.forEach(([p,b])=>{if(p in idx)c[idx[p]]+=val(b)});
-  const cells=it.cells.map(x=>CI[x]).sort((a,b)=>a-b),r=it.r||[],x=only&&it.x?1:0,key=c.join()+'|'+cells.join()+'|'+r.join()+'|'+x;
-  if(!m.has(key))m.set(key,{c,cells,r,x,names:[]});m.get(key).names.push(it.n)});
+  const cells=it.cells.map(x=>CI[x]).sort((a,b)=>a-b),r=it.r||[],x=only&&it.x?1:0,e=onlyE&&it.e?1:0,key=c.join()+'|'+cells.join()+'|'+r.join()+'|'+x+'|'+e;
+  if(!m.has(key))m.set(key,{c,cells,r,x,e,names:[]});m.get(key).names.push(it.n)});
  const a=[...m.values()];return a.filter(x=>!a.some(y=>y!==x&&covers(y,x)))}
-function pools(){const wt=$('wt').value,exm=exMode(),ex=exm!=='exclude',only=exm==='only',R=[...sel.keys()],k=R.length,idx={};R.forEach((p,i)=>idx[p]=i);
- const arm=AT.map(t=>{const pin=pins[t]&&byKeyA.get(pins[t]),list=pin?[pin]:D.arm.filter(a=>a[1]===t&&(ex||!a[5])&&!excl.has(a[6]));
-  return mkClasses(list.map(a=>({n:a[0],cells:a[3]?[a[3]]:[],p:a[4],r:resVec(a),x:a[5]})),idx,k,only)});
+function pools(){const wt=$('wt').value,exm=exMode(),ex=exm!=='exclude',only=exm==='only',esm=escMode(),noEsc=esm==='exclude',onlyE=esm==='only',R=[...sel.keys()],k=R.length,idx={};R.forEach((p,i)=>idx[p]=i);
+ const arm=AT.map(t=>{const pin=pins[t]&&byKeyA.get(pins[t]),list=pin?[pin]:D.arm.filter(a=>a[1]===t&&(ex||!a[5])&&!(noEsc&&a[12])&&!excl.has(a[6]));
+  return mkClasses(list.map(a=>({n:a[0],cells:a[3]?[a[3]]:[],p:a[4],r:resVec(a),x:a[5],e:a[12]?1:0})),idx,k,only,onlyE)});
  const pk=$('wn').value,one=pk===''||pk==='Any'?null:D.wp[+pk];
- const normal=D.wp.filter(w=>!w[7]&&(wt==='Any'||w[1]===wt)&&(ex||!w[6])&&!excl.has(w[8])),items=one?(one[7]?[]:[{n:one[0]+' ['+one[1]+']',cells:one[4],p:one[5],x:one[6]}]):normal.map(w=>({n:w[0]+' ['+w[1]+']',cells:w[4],p:w[5],x:w[6]}));
- if(one?one[7]:$('lg').checked)D.wp.filter(l=>l[7]&&!excl.has(l[8])&&(one?l===one:(wt==='Any'||l[1]===wt))).forEach(l=>normal.filter(w=>w[1]===l[1]&&w[3]===l[7]&&w[5].length).forEach(w=>items.push({n:l[0]+' ⟷ '+w[0],cells:l[4],p:w[5],x:l[6]||w[6]})));
- return [...arm,mkClasses(items,idx,k,only)]}
+ const normal=D.wp.filter(w=>!w[7]&&(wt==='Any'||w[1]===wt)&&(ex||!w[6])&&!(noEsc&&w[10])&&!excl.has(w[8])),items=one?(one[7]?[]:[{n:one[0]+' ['+one[1]+']',cells:one[4],p:one[5],x:one[6],e:one[10]?1:0}]):normal.map(w=>({n:w[0]+' ['+w[1]+']',cells:w[4],p:w[5],x:w[6],e:w[10]?1:0}));
+ if(one?one[7]:$('lg').checked)D.wp.filter(l=>l[7]&&!excl.has(l[8])&&!(noEsc&&l[10]&&!one)&&(one?l===one:(wt==='Any'||l[1]===wt))).forEach(l=>normal.filter(w=>w[1]===l[1]&&w[3]===l[7]&&w[5].length).forEach(w=>items.push({n:l[0]+' ⟷ '+w[0],cells:l[4],p:w[5],x:l[6]||w[6],e:l[10]?1:0})));
+ return [...arm,mkClasses(items,idx,k,only,onlyE)]}
 function run(){
  const R=[...sel.keys()],k=R.length,tg=R.map(p=>sel.get(p)*3),cvv=cv(),ty=R.map(p=>CI[D.perks[p][0]]),lan=lanInfo().slot?1:0,P=pools();
  const base=cs=>{const gear=new Array(k).fill(0),n=[0,0,0,0,lan,0];for(const c of cs){for(let i=0;i<k;i++)gear[i]+=c.c[i];for(const s of c.cells)n[s]++}return {gear,n}};
@@ -49,8 +49,8 @@ function run(){
   const slots=n.reduce((a,b)=>a+b,0),used=tk.reduce((a,b)=>a+b,0)+pk.reduce((a,b)=>a+b,0);return {gear,tot,tk,pk,score,ok,spare:slots-used,slots}};
  const [H,T,A,Lg,W]=P;let top=[],feasible=false;
  const keep=(r,key)=>{top.push({...r,key});if(top.length>300){top.sort((a,b)=>b.key-a.key);top=top.slice(0,40)}};
- const cfg=resCfg(),only=exMode()==='only',resOk=(h,t,a,l)=>cfg.E.every((_,i)=>h.r[i]+t.r[i]+a.r[i]+l.r[i]>=cfg.req[i]);
- const walk=fn=>{for(const h of H)for(const t of T)for(const a of A)for(const l of Lg){if(cfg.E.length&&!resOk(h,t,a,l))continue;for(const w of W){if(only&&!(h.x||t.x||a.x||l.x||w.x))continue;fn([h,t,a,l,w])}}};
+ const cfg=resCfg(),only=exMode()==='only',onlyE=escMode()==='only',resOk=(h,t,a,l)=>cfg.E.every((_,i)=>h.r[i]+t.r[i]+a.r[i]+l.r[i]>=cfg.req[i]);
+ const walk=fn=>{for(const h of H)for(const t of T)for(const a of A)for(const l of Lg){if(cfg.E.length&&!resOk(h,t,a,l))continue;for(const w of W){if(only&&!(h.x||t.x||a.x||l.x||w.x))continue;if(onlyE&&!(h.e||t.e||a.e||l.e||w.e))continue;fn([h,t,a,l,w])}}};
  walk(cs=>{const r=fast(cs);if(r.ok){feasible=true;keep({cs},r.spare*100+r.gp)}});
  if(!feasible){top=[];walk(cs=>{const d=detail(cs);keep({cs},d.score*100+d.spare)})}
  top.sort((a,b)=>b.key-a.key);return {R,tg,feasible,res:top.slice(0,6).map(x=>({cs:x.cs,d:detail(x.cs)})),cvv,ty,lan,resFilter:cfg.E.length>0}}
@@ -61,26 +61,25 @@ function place(e,t){const w=tip.offsetWidth,h=tip.offsetHeight,fam=t.closest('.f
  if(fam){const r=fam.getBoundingClientRect(),q=t.getBoundingClientRect();x=r.left-w-10;if(x<8)x=r.right+10;if(x+w>innerWidth-8)x=Math.max(8,Math.min(r.left,innerWidth-w-8));y=q.top-8;if(x===Math.max(8,Math.min(r.left,innerWidth-w-8)))y=q.bottom+8}
  else{x=e.clientX+16;y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16}
  if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
-document.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip],[data-pre]');if(!t){tip.style.display='none';return}
- const p=t.dataset.tip||'pre:'+t.dataset.pre;
+document.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.style.display='none';return}
+ const p=t.dataset.tip;
  if(tip.dataset.p!==p||tip.style.display==='none'){tip.dataset.p=p;
-  if(t.dataset.pre){const v=saved.find(x=>x.id==t.dataset.pre);tip.style.setProperty('--c','var(--ac)');tip.innerHTML=v?preHtml(v):''}
-  else{tip.style.setProperty('--c',`var(--${D.perks[p][0]})`);tip.innerHTML=tipHtml(p)}tip.style.display='block'}
+  tip.style.setProperty('--c',`var(--${D.perks[p][0]})`);tip.innerHTML=tipHtml(p);tip.style.display='block'}
  place(e,t)});
 document.addEventListener('scroll',()=>tip.style.display='none',true);
 const fc=t=>`style="--c:var(--${t})"`;
 const slotB=(s,f)=>`<span class="sl ${f?'f':''}" ${fc(s===5?'Prismatic':CN[s])}>${cic(CN[s])}${CN[s]}${f?' → '+esc(f):''}</span>`;
 function view(o){const {R,tg,feasible,res,cvv,ty,lan}=o,names=['Head','Torso','Arms','Legs','Weapon'];
  snaps.length=0;if(!res.length)return '<div class="empty">'+(o.resFilter?'No armor combination reaches your resistance filter. Loosen it in “Advanced filters”.':excl.size?'No build is possible without the gear you marked as missing. Reset it above or loosen your targets.':'No gear found for these options.')+'</div>';
- return (feasible?'':'<p class="warn">No combination reaches every target. These are the closest builds.</p>')+res.map((x,bi)=>{
+ return (feasible?'':'<p class="warn">No combination reaches every target. These are the closest builds.</p>')+res.slice(0,3).map((x,bi)=>{
   const LN=lanInfo(),OM=omniInfo(),items=[{lab:'Lantern',cells:LN.slot?[4]:[],nm:[LN.name],c:null},...x.cs.map((c,i)=>({lab:names[i],cells:c.cells,nm:c.names,c:c.c}))].sort((a,b)=>ORD.indexOf(a.lab)-ORD.indexOf(b.lab));
   if(OM)items.push({lab:'Omnicell',cells:[],nm:[OM.name],c:null});
   const fills=items.map(it=>it.cells.map(()=>null));
   R.forEach((p,i)=>{const put=(want,n)=>{for(let j=0;j<items.length&&n>0;j++)items[j].cells.forEach((s,q)=>{if(n>0&&!fills[j][q]&&s===want){fills[j][q]=p;n--}})};put(ty[i],x.d.tk[i]);put(5,x.d.pk[i])});
   snaps[bi]={items:items.map((it,j)=>({lab:it.lab,nm:it.nm.slice(0,12),cells:it.cells.map((s,q)=>[s,fills[j][q]||''])})),tot:R.map((p,i)=>[p,x.d.tot[i],tg[i]])};const perkTags=it=>it.c?R.map((p,i)=>it.c[i]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${it.c[i]}</span>`:'').join(''):'';
-  return `<div class="build"><div class="bh"><span class="rank">#${bi+1}</span>${x.d.ok?'<span class="good">✓ Reaches every target</span>':'<span class="warn">Misses a target</span>'}<span class="mu">${x.d.slots-x.d.spare} of ${x.d.slots} cell slots used</span><input class="sn nn" id="nm${bi}" placeholder="Name this loadout" maxlength="40" style="margin-left:auto;max-width:190px"><button class="pick sv" data-bi="${bi}">☆ Save</button><button class="pick xp" data-bi="${bi}">⇪ Export</button></div>`+
-  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.exo?'<span class="exo">★ Exotic</span>':''}${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}${rk.res||''}</div>${rk.parts||''}</div></div></div>`}).join('')+
-  `<div class="tot">`+R.map((p,i)=>{const t=x.d.tot[i],cn=x.d.tk[i]+x.d.pk[i];return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=tg[i]?'good':'warn'}">+${Math.min(6,t)}</b><span class="mu"> / ${tg[i]} · ${x.d.gear[i]} gear + ${cn} cell${cn==1?'':'s'}</span><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+'</div>'+resHtml(items)+craftHtml(items)+'</div>'}).join('')}
+  return `<div class="build${bi?' collapsed':''}"><div class="bh"><span class="rank">#${bi+1}</span><button class="pick build-toggle" type="button" aria-expanded="${bi===0}" aria-label="${bi===0?'Collapse':'Expand'} build ${bi+1}">${bi===0?'▾':'▸'} Details</button>${x.d.ok?'<span class="good">✓ Reaches every target</span>':'<span class="warn">Misses a target</span>'}<span class="mu">${x.d.slots-x.d.spare} of ${x.d.slots} cell slots used</span><input class="sn nn" id="nm${bi}" placeholder="Name this loadout" maxlength="40" style="margin-left:auto;max-width:190px"><button class="pick sv" data-bi="${bi}">☆ Save</button><button class="pick xp" data-bi="${bi}">⇪ Export</button><button class="pick sh" data-bi="${bi}">↗ Share</button></div><div class="build-content">`+
+  items.map((it,j)=>{const alt=it.nm.slice(1),rk=rowInfo(it);return `<div class="line"><span class="lab">${it.lab}</span><div class="gr">${rk.ic?img(rk.ic):''}<div class="gb"><span class="gn">${esc(it.nm[0])}</span>${rk.exo?'<span class="exo">★ Exotic</span>':''}${rk.esc?`<span class="esc" title="Gear from the ${rk.esc} Escalation boss">⚑ ${rk.esc} Escalation</span>`:''}${rk.ex.map(e=>`<button class="xbtn" data-k="${esc(e.k)}" data-n="${esc(e.n)}" title="Search again without ${esc(e.n)}">✕ ${esc(e.t)}</button>`).join('')}${alt.length?`<details><summary>+${alt.length} alternative${alt.length>1?'s':''}</summary><div class="mu">${alt.map(esc).join('<br>')}</div></details>`:''}${rk.desc?`<div class="mu desc">${esc(rk.desc)}</div>`:''}<div>${it.cells.map((s,q)=>slotB(s,fills[j][q])).join('')}${perkTags(it)}${rk.res||''}</div>${rk.parts||''}</div></div></div>`}).join('')+
+  `<div class="tot">`+R.map((p,i)=>{const t=x.d.tot[i],cn=x.d.tk[i]+x.d.pk[i];return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=tg[i]?'good':'warn'}">+${Math.min(6,t)}</b><span class="mu"> / ${tg[i]} · ${x.d.gear[i]} gear + ${cn} cell${cn==1?'':'s'}</span><div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+'</div>'+resHtml(items)+'<!-- Materials tab scaffold: <div class="tabs"><button class="tb" data-t="mats">Materials</button></div><div class="pane mats"></div> --></div></div>'}).join('')}
 function table(){const R=[...sel.keys()];
  const rows=[...D.arm.filter(a=>a[4].some(p=>sel.has(p[0]))).map(a=>[a[0],a[1],a[2],[a[3]],a[4],a[5],a[6]]),...D.wp.filter(w=>!w[7]&&w[5].some(p=>sel.has(p[0]))).map(w=>[w[0],w[1],w[2],w[4],w[5],w[6],w[8]])];
  const none=R.filter(p=>!rows.some(r=>r[4].some(x=>x[0]===p)));
@@ -101,35 +100,44 @@ function draw(){const q=$('q').value.toLowerCase().trim(),fl=document.querySelec
 const snaps=[];let saved=[];try{saved=JSON.parse(localStorage.getItem('dlb_saved')||'[]')}catch(e){}
 const persist=()=>{try{localStorage.setItem('dlb_saved',JSON.stringify(saved))}catch(e){}};
 let activeId=null; /* id of the saved loadout the player is currently working on */
+let selectedSavedId='';
 const curOpts=()=>({wt:$('wt').value,wn:($('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||''),cv:$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:JSON.stringify(advState()),lt:$('lt').value,om:$('om').value,pt:JSON.stringify(partSel)});
 let svT;function svmsg(t){const e=$('svmsg');e.textContent=t;clearTimeout(svT);svT=setTimeout(()=>e.textContent='',4000)}
 /* Saving under a name that already exists overwrites that loadout (it keeps its place in the list). */
 function save(bi){const s=snaps[bi];if(!s)return;
  const typed=((document.getElementById('nm'+bi)||{}).value||'').trim(),name=typed||('Loadout '+(saved.length+1)+': '+[...sel.keys()].slice(0,3).join(', '));
  const data={targets:[...sel],opts:curOpts(),items:s.items,tot:s.tot},k=typed?saved.findIndex(v=>v.name.toLowerCase()===typed.toLowerCase()):-1;
- if(k>=0){Object.assign(saved[k],data);activeId=saved[k].id;svmsg(`“${saved[k].name}” was overwritten.`)}else{const id=Date.now();saved.unshift({id,name,...data});activeId=id}
+ if(k>=0){Object.assign(saved[k],data);activeId=saved[k].id;selectedSavedId=String(saved[k].id);svmsg(`“${saved[k].name}” was overwritten.`)}else{const id=Date.now();saved.unshift({id,name,...data});activeId=id;selectedSavedId=String(id)}
  persist();drawSaved();const b=document.querySelector(`.sv[data-bi="${bi}"]`);if(b)b.textContent=k>=0?'✓ Overwritten':'✓ Saved'}
-function loadPreset(v){activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
-const preHtml=v=>{const o=v.opts||{};return `<b class="t">${esc(v.name)}</b><div class="tr">${v.targets.map(([p,n])=>D.perks[p]?`<div>${col(D.perks[p][0])}${esc(p)} <b>+${n*3}</b></div>`:'').join('')}</div><div class="tr mu">${o.wn?esc(o.wn):esc(o.wt||'Any')+' weapons'} · cells +${o.cv||3}${o.sg===false?' · not surged':''}${o.lg===false?' · no legendary':''}${o.ex?' · exotics':''}<br>Click to load</div>`};
+function loadPreset(v){selectedSavedId=String(v.id);if(v.buildCode){activeId=null;importBuild(v.buildCode);return}activeId=v.id;sel.clear();v.targets.forEach(([p,n])=>{if(D.perks[p])sel.set(p,n)});const o=v.opts||{};if(o.wt)$('wt').value=o.wt;fillWn(o.wn||'');if(o.cv)$('cv').value=o.cv;['sg','lg'].forEach(k=>{if(k in o)$(k).checked=o[k]});if(o.adv)applyAdv(o.adv);else if('ex' in o)applyAdv({exm:o.ex?'allow':'exclude'});if(o.pt){try{partSel=JSON.parse(o.pt);savePart()}catch(e){}}if(o.lt&&[...$('lt').options].some(x=>x.value===o.lt))$('lt').value=o.lt;$('om').value=[...$('om').options].some(x=>x.value===(o.om||''))?(o.om||''):'';refresh()}
 function drawSaved(){$('svn').textContent=saved.length?`· ${saved.length}`:'';
- $('saved').innerHTML=saved.length?saved.map(v=>`<span class="pre" data-pre="${v.id}" tabindex="0">${esc(v.name)} <span class="mu">${v.targets.length} perk${v.targets.length==1?'':'s'}</span><button data-ow="${v.id}" title="Overwrite with your current perks and options">⟳</button><button data-del="${v.id}" title="Delete">×</button></span>`).join(''):'<span class="mu">No saved loadouts yet. Type a name on a build below and press ☆ Save.</span>';
- document.querySelectorAll('#saved .pre').forEach(el=>{const v=saved.find(x=>x.id==el.dataset.pre);el.onclick=e=>{if(e.target.dataset.ow){const b=e.target;
-   if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Overwrite?';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='⟳'}},3000);return}
-   if(!sel.size){svmsg('Pick some perks first, then overwrite.');drawSaved();return}
-   Object.assign(v,{targets:[...sel],opts:curOpts()});activeId=v.id;persist();drawSaved();svmsg(`“${v.name}” was updated with your current perks and options.`);return}
-  if(e.target.dataset.del){saved=saved.filter(x=>x!==v);if(activeId===v.id)activeId=null;persist();tip.style.display='none';drawSaved();return}loadPreset(v)};el.onkeydown=e=>{if(e.key==='Enter')loadPreset(v)}});updateActive()}
+ const select=$('savedselect'),current=saved.find(v=>String(v.id)===selectedSavedId)||saved.find(v=>v.id===activeId);
+ selectedSavedId=current?String(current.id):(saved[0]?String(saved[0].id):'');
+ select.innerHTML=saved.length?'<option value="">Select a loadout…</option>'+saved.map(v=>`<option value="${esc(v.id)}">${esc(v.name)} · ${v.targets.length} perk${v.targets.length===1?'':'s'}</option>`).join(''):'<option value="">No saved loadouts</option>';
+ select.value=selectedSavedId;
+ ['savedload','savedoverwrite','saveddelete'].forEach(id=>$(id).disabled=!saved.length||!selectedSavedId);
+ $('savedhelp').hidden=!saved.length;
+ updateActive()}
+$('savedselect').onchange=()=>{selectedSavedId=$('savedselect').value;drawSaved()};
+$('savedload').onclick=()=>{const v=saved.find(x=>String(x.id)===selectedSavedId);if(v)loadPreset(v)};
+$('savedoverwrite').onclick=()=>{const v=saved.find(x=>String(x.id)===selectedSavedId),button=$('savedoverwrite');if(!v)return;
+ if(button.dataset.armed!=='1'){button.dataset.armed='1';button.textContent='Confirm overwrite?';setTimeout(()=>{if(button.isConnected){button.dataset.armed='';button.textContent='Overwrite'}},3000);return}
+ button.dataset.armed='';button.textContent='Overwrite';
+ if(!sel.size){svmsg('Pick some perks first, then overwrite.');return}
+ if(v.buildCode){svmsg('Imported builds are saved as exact builds. Save this build with a new name instead.');return}
+ Object.assign(v,{targets:[...sel],opts:curOpts()});activeId=v.id;persist();drawSaved();svmsg(`“${v.name}” was updated with your current perks and options.`)};
+$('saveddelete').onclick=()=>{const v=saved.find(x=>String(x.id)===selectedSavedId);if(!v)return;saved=saved.filter(x=>x!==v);if(activeId===v.id)activeId=null;selectedSavedId='';persist();tip.style.display='none';drawSaved();svmsg(`“${v.name}” was deleted.`)};
 /* Shows which saved loadout is being edited and whether the current perks and options differ from it. */
 const sameState=v=>{const o=v.opts||{},c=curOpts();if(JSON.stringify([...sel].sort())!==JSON.stringify([...v.targets].sort()))return false;
  return ['wt','wn','cv','sg','lg','adv','lt','om','pt'].every(k=>!(k in o)||String(o[k])===String(c[k]))};
 function updateActive(){const v=saved.find(x=>x.id===activeId);if(!v)activeId=null;
  const dirty=!!v&&!sameState(v);
- document.querySelectorAll('#saved .pre').forEach(el=>{const on=!!v&&el.dataset.pre==v.id;el.classList.toggle('act',on);el.classList.toggle('dirty',on&&dirty)});
  const box=$('actbox');if(!box)return;
  if(!v){box.innerHTML='';return}
  box.innerHTML=`<span class="actb">Editing: <b>${esc(v.name)}</b></span>`+(dirty?'<span class="warn">● unsaved changes</span><button class="pick" id="actsave">Save changes</button><button class="pick" id="actrev">Discard</button>':'<span class="good">✓ saved</span>')+'<button class="pick" id="actoff" title="Stop editing this loadout">Stop editing</button><span class="sep"></span>';
  if(dirty){$('actsave').onclick=()=>{Object.assign(v,{targets:[...sel],opts:curOpts()});persist();drawSaved();svmsg(`“${v.name}” was updated.`)};$('actrev').onclick=()=>loadPreset(v)}
  $('actoff').onclick=()=>{activeId=null;updateActive()}}
-function bindRes(){document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})}
+function bindRes(){document.querySelectorAll('.sv').forEach(b=>b.onclick=()=>save(+b.dataset.bi));document.querySelectorAll('.xp').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi));document.querySelectorAll('.sh').forEach(b=>b.onclick=()=>exportBuild(+b.dataset.bi,true));document.querySelectorAll('.build-toggle').forEach(b=>b.onclick=()=>{const card=b.closest('.build'),collapsed=card.classList.toggle('collapsed');b.setAttribute('aria-expanded',String(!collapsed));b.setAttribute('aria-label',`${collapsed?'Expand':'Collapse'} ${card.querySelector('.rank').textContent} build`);b.textContent=`${collapsed?'▸':'▾'} Details`});document.querySelectorAll('.nn').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')save(+i.id.slice(2))})}
 let tm;function calc(){updateActive();if(!sel.size){$('res').innerHTML='<div class="empty">👆 Pick one or more perks above to see the best builds.</div>';$('pc').innerHTML='';return}
  $('res').style.opacity=.45;clearTimeout(tm);tm=setTimeout(()=>{lastRun=run();$('res').innerHTML=view(lastRun);$('res').style.opacity=1;$('pc').innerHTML=table();bindRes()},20)}
 function refresh(){draw();renderPins();calc()}
@@ -150,7 +158,7 @@ function omniInfo(){const k=$('om').value,o=k?D.omni.find(x=>x[1]===k):null;retu
 const partsFor=t=>{const o={},c=partSel[t]||{};Object.keys(c).forEach(k=>{if(c[k])o[k]=c[k]});return o};
 const byKeyW=new Map(D.wp.map(w=>[w[8],w])),byKeyA=new Map(D.arm.map(a=>[a[6],a])),byKeyL=new Map(D.lan.map(l=>[l[2],l])),byKeyO=new Map(D.omni.map(o=>[o[1],o]));
 const stripType=n=>n.replace(/ \[[^\]]+\]$/,'');
-function exportBuild(bi){
+async function exportBuild(bi,copyLink=false){
  const s=snaps[bi],msg=$('expmsg');if(!s)return;msg.className='mu';
  const item=lab=>s.items.find(i=>i.lab===lab),cells={},rank=cv(),put=(sock,perk)=>{if(perk&&D.perks[perk])cells[sock]=[perk,rank]};
  const wi=item('Weapon'),nm=wi.nm[0];let wRec,bond=null;
@@ -162,10 +170,24 @@ function exportBuild(bi){
  const armour={};
  AT.forEach(slot=>{const it=item(slot),rec=D.arm.find(a=>a[0]===it.nm[0]&&a[1]===slot);armour[slot]={key:rec?rec[6]:null,level:lvl};if(it.cells[0])put(slot,it.cells[0][1])});
  const li=item('Lantern');if(li&&li.cells[0])put('lan',li.cells[0][1]);
- const code=BuildCode.encode({weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:advState()},cells});
- $('expcode').value=code;$('iedet').open=true;msg.textContent='Code ready. Use Copy code.'}
+ const data={weapon:{key:wRec[8],level:lvl},bond,armour,lantern:lanInfo().rec?lanInfo().rec[2]:null,omnicell:omniInfo()?omniInfo().rec[1]:null,parts:partsFor(weaponTypeOf(nm)),targets:[...sel],opts:{wt:$('wt').value,wn:$('wn').value==='Any'?'':(D.wp[+$('wn').value]||[])[0]||'',cv:+$('cv').value,sg:$('sg').checked,lg:$('lg').checked,adv:advState()},cells};
+ try{
+  const code=await BuildCode.encodeCompact(data),url=location.href.split('#')[0]+'#build='+code;
+  $('expcode').value=code;$('sharelink').value=url;$('iedet').open=true;
+  if(copyLink){
+   history.replaceState(null,'',url);
+   try{await navigator.clipboard.writeText(url);$('sharemsg').textContent='Link copied. Anyone with it can open this build.'}
+   catch(e){$('sharemsg').textContent='Link ready below. Select it and copy to share.';$('sharelink').focus();$('sharelink').select()}
+  }
+  msg.textContent='Compact code ready. Copy it or share the link.';
+  if(!copyLink)$('expcode').focus();
+ }catch(e){msg.textContent=e.message;msg.className='warn'}
+}
 $('expcopy').onclick=async()=>{const t=$('expcode').value,m=$('expmsg');if(!t){m.textContent='Press ⇪ Export on a build first.';return}
  try{await navigator.clipboard.writeText(t);m.textContent='Copied.'}catch(e){m.textContent='Select the code and copy it manually.';$('expcode').select()}};
+$('sharecopy').onclick=async()=>{const t=$('sharelink').value,m=$('sharemsg');if(!t){m.textContent='Press ↗ Share on a build first.';return}
+ try{await navigator.clipboard.writeText(t);m.textContent='Link copied. Anyone with it can open this build.'}
+ catch(e){m.textContent='Select the link and copy it manually.';$('sharelink').focus();$('sharelink').select()}};
 /* Import: restores the whole tool state of the code (targets, options, lantern, omnicell, parts) and pins the exact build above the search results. */
 let impB=null;
 function impInfo(b){
@@ -186,13 +208,27 @@ function impInfo(b){
 function renderImported(){const out=$('impview');
  if(!impB){out.innerHTML='';return}
  const I=impInfo(impB);if(!I){out.innerHTML='';return}
- out.innerHTML=`<div class="build"><div class="bh"><span class="rank">Imported build</span><span class="mu">${impB.weapon[1]===1?'Power surged':'Base level'} · everything from the code was applied to the tool</span><button class="pick" id="impclose" style="margin-left:auto">✕ Close</button></div>`+
+ out.innerHTML=`<div class="build"><div class="bh"><span class="rank">Imported build</span><span class="mu">${impB.weapon[1]===1?'Power surged':'Base level'} · everything from the code was applied to the tool</span><input class="sn" id="impname" placeholder="Name this loadout" maxlength="40" aria-label="Name imported loadout"><button class="pick" id="impsave">☆ Save</button><button class="pick" id="impclose">✕ Close</button></div>`+
   I.rows.map(r=>`<div class="line"><span class="lab">${r.lab}</span><div class="gr">${r.ic?img(r.ic):''}<div class="gb"><span class="gn">${esc(r.nm)}</span>${r.desc?`<div class="mu desc">${esc(r.desc)}</div>`:''}<div>${r.fam.map((f,i)=>slotB(CI[f],r.fill[i])).join('')}${r.perks.map(([p,v])=>D.perks[p]?`<span class="tag" ${fc(D.perks[p][0])} data-tip="${esc(p)}">${cic(D.perks[p][0])}${esc(p)} +${v}</span>`:'').join('')}</div>${r.parts||''}</div></div></div>`).join('')+
   `<div class="tot">`+I.ps.map(([p,t])=>{const tg=sel.has(p)?sel.get(p)*3:0;return `<div class="m" ${fc(D.perks[p][0])}><span data-tip="${esc(p)}" style="cursor:help"><b>${esc(p)}</b></span> <b class="${t>=6||(tg&&t>=tg)?'good':''}">+${Math.min(6,t)}</b>${tg?`<span class="mu"> / ${tg}</span>`:''}<div class="mb"><i style="width:${Math.min(6,t)/6*100}%"></i></div></div>`}).join('')+`</div></div>`;
+ $('impsave').onclick=saveImported;
  $('impclose').onclick=()=>{impB=null;renderImported()}}
-function importBuild(){
+async function saveImported(){
+ if(!impB)return;
+ const button=$('impsave'),nameInput=$('impname'),typed=nameInput.value.trim();
+ button.disabled=true;button.textContent='Saving…';
+ try{
+  const buildCode=await BuildCode.encodeCompact(impB);
+  const name=typed||`Imported loadout ${saved.length+1}`;
+  const data={targets:[...sel],opts:curOpts(),buildCode},existing=typed?saved.find(v=>v.name.toLowerCase()===typed.toLowerCase()):null;
+  if(existing){Object.assign(existing,data);activeId=existing.id;svmsg(`“${existing.name}” was overwritten.`)}
+  else{const id=Date.now();saved.unshift({id,name,...data});activeId=id;svmsg(`“${name}” was saved.`)}
+  selectedSavedId=String(existing?existing.id:saved[0].id);persist();drawSaved();button.textContent=existing?'✓ Overwritten':'✓ Saved';
+ }catch(e){button.disabled=false;button.textContent='☆ Save';svmsg(`Could not save this build: ${e.message}`)}
+}
+async function importBuild(input,fromLink=false){
  const msg=$('impmsg');msg.className='mu';
- let b;try{b=BuildCode.decode($('impin').value)}catch(e){msg.textContent=e.message;msg.className='warn';return}
+ let b;try{const code=input===undefined?$('impin').value:input;b=code.replace(/\s+/g,'').startsWith('DLF2.')?await BuildCode.decodeCompact(code):BuildCode.decode(code)}catch(e){msg.textContent=e.message;msg.className='warn';return}
  const I=impInfo(b);if(!I){msg.textContent='Unknown weapon in this code.';msg.className='warn';return}
  const o=b.opts||{},W=I.W;impB=b;
  sel.clear();
@@ -207,12 +243,12 @@ function importBuild(){
  $('om').value=[...$('om').options].some(x=>x.value===(b.omnicell||''))?(b.omnicell||''):'';
  if(b.parts&&Object.keys(b.parts).length){partSel[W[1]]=b.parts;savePart()}
  activeId=null;refresh();renderImported();
- msg.textContent=`Imported: ${W[0]}${I.bondRec&&W[7]?' bonded with '+I.bondRec[0]:''}. Targets and options were restored.`;
- $('impview').scrollIntoView({block:'nearest',behavior:'smooth'})}
+ msg.textContent=`${fromLink?'Shared build loaded':'Imported'}: ${W[0]}${I.bondRec&&W[7]?' bonded with '+I.bondRec[0]:''}. Targets and options were restored.`;
+ if(!fromLink)$('impview').scrollIntoView({block:'nearest',behavior:'smooth'})}
 document.addEventListener('change',e=>{const el=e.target.closest&&e.target.closest('.ps');if(!el)return;
  (partSel[el.dataset.t]=partSel[el.dataset.t]||{})[el.dataset.k]=el.value;if(!el.value)delete partSel[el.dataset.t][el.dataset.k];savePart();
  if(lastRun){$('res').innerHTML=view(lastRun);bindRes()}if(impB)renderImported();updateActive()});
-$('impbtn').onclick=importBuild;
+$('impbtn').onclick=()=>importBuild();
 $('impin').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))importBuild()});
 $('lt').insertAdjacentHTML('beforeend',D.lan.map(l=>`<option value="${esc(l[2])}">${esc(l[0])}${l[1]?'':' (no cell slot)'}</option>`).join(''));
 $('om').insertAdjacentHTML('beforeend',D.omni.map(o=>`<option value="${esc(o[1])}">${esc(o[0])}</option>`).join(''));
@@ -233,9 +269,9 @@ function rowInfo(it){
  if(it.lab==='Omnicell'){const O=omniInfo();return {ic:O&&O.ic,ex:[],desc:O&&O.desc}}
  if(it.lab==='Weapon'){
   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ '),L=D.wp.find(x=>x[0]===l&&x[7]),P=D.wp.find(x=>x[0]===w&&!x[7]);
-   return {parts:partsHtml(weaponTypeOf(nm)),desc:L&&L[9]?L[9]:'',exo:L&&L[6],ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
-  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {parts:partsHtml(weaponTypeOf(nm)),desc:r&&r[9]?r[9]:'',exo:r&&r[6],ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
- const r=D.arm.find(a=>a[0]===nm&&a[1]===it.lab);return {res:resTags(r),desc:r&&r[11]?r[11]:'',exo:r&&r[5],ic:r&&r[6],ex:r?[{k:r[6],n:r[0],t:"Don't have"}]:[]}}
+   return {parts:partsHtml(weaponTypeOf(nm)),desc:L&&L[9]?L[9]:'',exo:L&&L[6],esc:L&&L[10],ic:L&&L[8],ex:[L&&{k:L[8],n:L[0],t:"Don't have legendary"},P&&{k:P[8],n:P[0],t:"Don't have "+P[0]}].filter(Boolean)}}
+  const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);return {parts:partsHtml(weaponTypeOf(nm)),desc:r&&r[9]?r[9]:'',exo:r&&r[6],esc:r&&r[10],ic:r&&r[8],ex:r?[{k:r[8],n:r[0],t:"Don't have"}]:[]}}
+ const r=D.arm.find(a=>a[0]===nm&&a[1]===it.lab);return {res:resTags(r),desc:r&&r[11]?r[11]:'',exo:r&&r[5],esc:r&&r[12],ic:r&&r[6],ex:r?[{k:r[6],n:r[0],t:"Don't have"}]:[]}}
 function drawExcl(){const el=$('exb');
  el.innerHTML=excl.size?`<div class="exbar"><span class="mu">Marked as missing:</span>${[...excl].map(([k,n])=>`<span class="xchip">${esc(n)}<button data-r="${esc(k)}" title="I have it again">×</button></span>`).join('')}<button class="pick" id="exreset">Reset all</button></div>`:'';
  el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{excl.delete(b.dataset.r);afterExcl()});
@@ -246,6 +282,7 @@ drawExcl();
 
 /* ---------- Advanced filters: exotic mode, pinned pieces, resistances; resistance and crafting displays ---------- */
 function exMode(){return $('exm').value}
+function escMode(){return $('esm').value}
 function resCfg(){const E=[],req=[];EL.forEach((el,i)=>{const v=$('res-'+el).value;if(v!==''){E.push(i);req.push(+v)}});return {E,req}}
 const resValue=a=>($('sg').checked&&a[10]!=null)?a[10]:(a[9]||0);
 function resVec(a){const {E}=resCfg();if(!E.length)return [];const v=resValue(a);return E.map(e=>a[7]===EL[e]?v:a[8]===EL[e]?-v:0)}
@@ -254,24 +291,30 @@ function resHtml(items){const t=EL.map(()=>0);let any=false;
  items.forEach(it=>{if(!AT.includes(it.lab))return;const a=D.arm.find(x=>x[0]===it.nm[0]&&x[1]===it.lab);if(!a||!a[7])return;any=true;const v=resValue(a);t[EL.indexOf(a[7])]+=v;t[EL.indexOf(a[8])]-=v});
  if(!any)return '';const cfg=resCfg();
  return '<div class="rtot"><span class="mu">Resistance</span>'+EL.map((el,i)=>{const need=cfg.E.includes(i)?cfg.req[cfg.E.indexOf(i)]:null,bad=need!==null&&t[i]<need;return `<span class="r ${t[i]>0?'pos':t[i]<0?'neg':''}" title="${el}${need!==null?' (needs ≥ '+need+'%)':''}">${img('elements/'+el,'xs')}${t[i]>0?'+':t[i]<0?'−':''}${Math.abs(t[i])}%${bad?' ⚠':''}</span>`}).join('')+'</div>'}
-function wikiUrl(n){return 'https://dauntless.fandom.com/wiki/'+encodeURIComponent(n.replace(/ /g,'_'))}
-function craftHtml(items){const recs=[];
+const ESC_BOSS={Torgadoro:'Blaze',Malkarion:'Shock',Thrax:'Umbral',Agarus:'Terra',Urska:'Frost',Chronovore:'Radiant'};
+function matsHtml(items){const recs=[];
  items.forEach(it=>{if(it.lab==='Weapon'){const nm=it.nm[0];
-   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ ');[D.wp.find(x=>x[0]===l&&x[7]),D.wp.find(x=>x[0]===w&&!x[7])].forEach(r=>r&&recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:r[7]?'Legendary weapon':'Bond weapon'}))}
-   else{const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);if(r)recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:'Weapon'})}}
-  else if(AT.includes(it.lab)){const r=D.arm.find(x=>x[0]===it.nm[0]&&x[1]===it.lab);if(r)recs.push({n:r[0],k:r[6],b:r[2],x:r[5],t:it.lab})}});
+   if(nm.includes(' ⟷ ')){const [l,w]=nm.split(' ⟷ ');[D.wp.find(x=>x[0]===l&&x[7]),D.wp.find(x=>x[0]===w&&!x[7])].forEach(r=>r&&recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:r[7]?'Legendary weapon':'Bond weapon',e:r[10]}))}
+   else{const r=D.wp.find(x=>x[0]===stripType(nm)&&!x[7]);if(r)recs.push({n:r[0],k:r[8],b:r[2],x:r[6],t:'Weapon',e:r[10]})}}
+  else if(AT.includes(it.lab)){const r=D.arm.find(x=>x[0]===it.nm[0]&&x[1]===it.lab);if(r)recs.push({n:r[0],k:r[6],b:r[2],x:r[5],t:it.lab,e:r[12]})}});
  if(!recs.length)return '';
- const by={};recs.forEach(r=>{if(r.b)by[r.b]=(by[r.b]||0)+1});
- return `<details class="craft"><summary>Crafting list (${recs.length} pieces)</summary><div class="cl">${Object.keys(by).length?`<div class="cs">Hunt: ${Object.entries(by).map(([b,n])=>`<b>${esc(b)}</b> ×${n}`).join(' · ')}</div>`:''}`+
-  recs.map(r=>`<div class="cr">${img(r.k,'')}<span><b>${esc(r.n)}</b>${r.x?' <span class="exo">★ Exotic</span>':''}<br><span class="mu">${r.t} · ${r.b?esc(r.b):'starter or special gear'}</span></span><a href="${wikiUrl(r.n)}" target="_blank" rel="noopener">Wiki ↗</a></div>`).join('')+
-  '<p class="mu" style="margin:8px 0 0">Craft every piece and upgrade it fully (power surged) to reach the values shown. The material amounts are on the wiki page of each piece.</p></div></details>'}
-function advState(){const res={};EL.forEach(el=>{const v=$('res-'+el).value;if(v!=='')res[el]=v});return {exm:exMode(),pins:{...pins},res}}
+ const M=window.__MATERIALS__||{items:{},behemoths:{}},groups=new Map(),total={};
+ recs.forEach(r=>{const g=r.b||'Starter or special gear';if(!groups.has(g))groups.set(g,[]);groups.get(g).push(r);
+  const m=M.items&&M.items[r.k];if(m)[...(m.craft||[]),...(m.upgrade||[])].forEach(([n,q])=>total[n]=(total[n]||0)+q)});
+ const chips=list=>list&&list.length?`<div class="mat-list">${list.map(([n,q])=>`<span class="mat-chip">${esc(n)} <b>×${q.toLocaleString()}</b></span>`).join('')}</div>`:'<span class="mu">None listed</span>';
+ const have=Object.keys(total).length>0;
+ return (have?`<div class="mt"><b>Total for this build</b><div class="mat-list">${Object.entries(total).map(([n,q])=>`<span class="mat-chip">${esc(n)} <b>×${q.toLocaleString()}</b></span>`).join('')}</div></div>`:'')+
+  [...groups.entries()].map(([g,list])=>`<div class="mg"><h4>${esc(g)}${ESC_BOSS[g]?`<span class="esc">⚑ ${ESC_BOSS[g]} Escalation boss</span>`:''}</h4>`+
+   list.map(r=>{const m=M.items&&M.items[r.k],hasRecipe=m&&((m.craft||[]).length||(m.upgrade||[]).length);return `<div class="cr">${img(r.k,'')}<div class="cr-info"><div class="cr-name"><b>${esc(r.n)}</b>${r.x?' <span class="exo">★ Exotic</span>':''} <span class="mu">${esc(r.t)}</span></div>${hasRecipe?`<div class="mat-phases"><section class="mat-phase"><b>Craft</b>${chips(m.craft)}</section><section class="mat-phase"><b>Upgrade materials</b>${chips(m.upgrade)}</section></div>`:'<div class="mu mat-missing">No craft or upgrade materials are listed for this item.</div>'}</div></div>`}).join('')+'</div>').join('')+
+  `<div class="note">Craft lists the materials for one item at level 1. Upgrade materials are the total listed for upgrading that item through its available levels. The total above adds every listed craft and upgrade cost for this build. The source has no recipe listed for some starter, quest, event, or exotic gear.</div>`}
+function advState(){const res={};EL.forEach(el=>{const v=$('res-'+el).value;if(v!=='')res[el]=v});return {exm:exMode(),esm:escMode(),pins:{...pins},res}}
 function applyAdv(a){if(typeof a==='string'){try{a=JSON.parse(a)}catch(e){return}}if(!a||typeof a!=='object')return;
  if(a.exm&&['exclude','allow','only'].includes(a.exm))$('exm').value=a.exm;
+ $('esm').value=['allow','exclude','only'].includes(a.esm)?a.esm:'allow';
  pins={};Object.entries(a.pins||{}).forEach(([slot,k])=>{if(AT.includes(slot)&&byKeyA.has(k))pins[slot]=k});
  EL.forEach(el=>{const v=(a.res||{})[el];$('res-'+el).value=[...$('res-'+el).options].some(o=>o.value===String(v))?String(v):''});
  renderPins();updateAdvDot()}
-function updateAdvDot(){$('advdot').hidden=!(exMode()!=='exclude'||Object.keys(pins).length||EL.some(el=>$('res-'+el).value!==''))}
+function updateAdvDot(){$('advdot').hidden=!(exMode()!=='exclude'||escMode()!=='allow'||Object.keys(pins).length||EL.some(el=>$('res-'+el).value!==''))}
 function advChanged(){updateAdvDot();renderPins();calc();updateActive()}
 function renderPins(){const chips=Object.entries(pins).map(([slot,k])=>{const a=byKeyA.get(k);return `<span class="xchip">📌 ${slot}: ${esc(a?a[0]:k)}<button data-pin="${slot}" title="Remove pin">×</button></span>`});
  const wv=$('wn').value;if(wv&&wv!=='Any'&&D.wp[+wv])chips.push(`<span class="xchip">📌 Weapon: ${esc(D.wp[+wv][0])}<button data-pin="Weapon" title="Remove pin">×</button></span>`);
@@ -293,4 +336,6 @@ updateAdvDot();
 (()=>{const b=$('fs');if(!b)return;if(!document.fullscreenEnabled){b.hidden=true;return}
  b.onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}};
  document.addEventListener('fullscreenchange',()=>b.textContent=document.fullscreenElement?'⛶ Exit fullscreen':'⛶ Fullscreen')})();
+const sharedCode=new URLSearchParams(location.hash.slice(1)).get('build');
+if(sharedCode){$('impin').value=sharedCode;importBuild(sharedCode,true)}
 })().catch(err => { document.body.insertAdjacentHTML('afterbegin', '<p style="padding:16px;color:#b3261e">Could not start: ' + err.message + '. If you opened the file directly, serve it with a local web server instead (python3 -m http.server).</p>'); });
